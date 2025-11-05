@@ -543,10 +543,25 @@ TEMPLATE_SCHEMA = {
             "type": "string",
         },
         "outputColumns": {
-            "description": "The ordered list of columns to be contained in the output csv(default order: alphabetical)",
-            "type": "array",
-            "items": {
-                "$ref": "#/$def/field_string_type",
+            "type": "object",
+            "properties": {
+                "customOrder": {
+                    "description": "The ordered list of columns to be contained in the output csv",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$def/field_string_type",
+                    },
+                },
+                "sortType": {
+                    "description": "The type of sorting to apply to the output columns",
+                    "type": "string",
+                    "enum": ["ALPHABETICAL", "ALPHANUMERIC", "CUSTOM"],
+                },
+                "sortOrder": {
+                    "description": "The order of sorting to apply to the output columns",
+                    "type": "string",
+                    "enum": ["ASC", "DESC"],
+                },
             },
         },
         "templateDimensions": {
