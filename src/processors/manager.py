@@ -1,5 +1,6 @@
 from dotmap import DotMap
 
+from src.exceptions import ConfigError
 from src.processors.AutoRotate import AutoRotate
 from src.processors.Contrast import Contrast
 from src.processors.CropOnMarkers import CropOnMarkers
@@ -30,4 +31,10 @@ PROCESSOR_MANAGER = DotMap(
 
 if set(PROCESSOR_MANAGER.processors.keys()) != set(SUPPORTED_PROCESSOR_NAMES):
     msg = f"Processor keys mismatch: {set(PROCESSOR_MANAGER.processors.keys())} != {set(SUPPORTED_PROCESSOR_NAMES)}"
-    raise Exception(msg)
+    raise ConfigError(
+        msg,
+        context={
+            "registered": list(PROCESSOR_MANAGER.processors.keys()),
+            "supported": SUPPORTED_PROCESSOR_NAMES,
+        },
+    )

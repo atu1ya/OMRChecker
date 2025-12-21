@@ -4,6 +4,11 @@ import jsonschema
 from jsonschema import validate
 from rich.table import Table
 
+from src.exceptions import (
+    ConfigValidationError,
+    EvaluationValidationError,
+    TemplateValidationError,
+)
 from src.schemas import SCHEMA_JSONS, SCHEMA_VALIDATORS
 from src.utils.logger import console, logger
 
@@ -21,6 +26,7 @@ def validate_evaluation_json(json_data, evaluation_path) -> None:
             SCHEMA_VALIDATORS["evaluation"].iter_errors(json_data),
             key=lambda e: e.path,
         )
+        error_messages = []
         for error in errors:
             key, validator, msg = parse_validation_error(error)
             if validator == "required":
@@ -29,6 +35,7 @@ def validate_evaluation_json(json_data, evaluation_path) -> None:
                     f"{key}.{required_property}",
                     msg + ". Make sure the spelling of the key is correct",
                 )
+                error_messages.append(f"{key}.{required_property}: {msg}")
             else:
                 if (
                     key in {"outputs_configuration", "marking_schemes"}
@@ -41,9 +48,11 @@ def validate_evaluation_json(json_data, evaluation_path) -> None:
                         msg = f"{color} is not a valid color."
 
                 table.add_row(key, msg)
+                error_messages.append(f"{key}: {msg}")
         console.print(table, justify="center")
-        msg = f"Provided Evaluation JSON is Invalid: '{evaluation_path}'"
-        raise Exception(msg) from None
+        raise EvaluationValidationError(
+            evaluation_path, errors=error_messages
+        ) from None
 
 
 def validate_template_json(json_data, template_path) -> None:
@@ -60,6 +69,7 @@ def validate_template_json(json_data, template_path) -> None:
             key=lambda e: e.path,
         )
         min_path_length = 2
+        error_messages = []
         for error in errors:
             key, validator, msg = parse_validation_error(error)
 
@@ -76,9 +86,9 @@ def validate_template_json(json_data, template_path) -> None:
                     f"{msg}. Check for spelling errors and make sure it is in camelCase"
                 )
             table.add_row(key, msg)
+            error_messages.append(f"{key}: {msg}")
         console.print(table, justify="center")
-        msg = f"Provided Template JSON is Invalid: '{template_path}'"
-        raise Exception(msg) from None
+        raise TemplateValidationError(template_path, errors=error_messages) from None
 
 
 def validate_config_json(json_data, config_path) -> None:
@@ -93,6 +103,7 @@ def validate_config_json(json_data, config_path) -> None:
             SCHEMA_VALIDATORS["config"].iter_errors(json_data),
             key=lambda e: e.path,
         )
+        error_messages = []
         for error in errors:
             key, validator, msg = parse_validation_error(error)
 
@@ -102,6 +113,7 @@ def validate_config_json(json_data, config_path) -> None:
                     f"{key}.{required_property}",
                     f"{msg}. Check for spelling errors and make sure it is in camelCase",
                 )
+                error_messages.append(f"{key}.{required_property}: {msg}")
             elif (
                 validator == "const"
                 and len(error.path) >= 2
@@ -110,15 +122,17 @@ def validate_config_json(json_data, config_path) -> None:
                 and json_data.get("outputs", {}).get("show_image_level", 0) > 0
             ):
                 # Custom message for show_image_level > 0 with max_parallel_workers > 1
+                custom_msg = "When show_image_level > 0 (interactive mode), max_parallel_workers must be 1. Parallel processing is not compatible with interactive image display."
                 table.add_row(
                     "processing.max_parallel_workers",
-                    "When show_image_level > 0 (interactive mode), max_parallel_workers must be 1. Parallel processing is not compatible with interactive image display.",
+                    custom_msg,
                 )
+                error_messages.append(f"processing.max_parallel_workers: {custom_msg}")
             else:
                 table.add_row(key, msg)
+                error_messages.append(f"{key}: {msg}")
         console.print(table, justify="center")
-        msg = f"Provided config JSON is Invalid: '{config_path}'"
-        raise Exception(msg) from None
+        raise ConfigValidationError(config_path, errors=error_messages) from None
 
 
 def parse_validation_error(error) -> tuple[str, str, str]:

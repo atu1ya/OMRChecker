@@ -5,20 +5,22 @@ from collections import defaultdict
 from pathlib import Path, PureWindowsPath
 from typing import Any, ClassVar
 
+from src.exceptions import ConfigLoadError, InputFileNotFoundError
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 from src.utils.math import MathUtils
 
 
 def load_json(path, **rest) -> dict[str, Any]:
+    if not Path(path).exists():
+        raise InputFileNotFoundError(Path(path), "JSON")
     try:
         # TODO: see if non-utf characters need to be handled
         with Path.open(path) as f:
             loaded = json.load(f, **rest)
     except json.decoder.JSONDecodeError as error:
-        msg = f"Error when loading json file at: '{path}'"
-        logger.critical(msg, error)
-        raise Exception(msg) from None
+        logger.critical(f"Error when loading json file at: '{path}'", error)
+        raise ConfigLoadError(Path(path), f"Invalid JSON format: {error}") from None
 
     return loaded
 

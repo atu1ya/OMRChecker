@@ -7,6 +7,7 @@ from dotmap import DotMap
 from matplotlib import pyplot as plt
 from shapely import LineString, Point
 
+from src.exceptions import ImageReadError
 from src.processors.constants import EDGE_TYPES_IN_ORDER, EdgeType
 from src.utils.checksum import print_file_checksum
 from src.utils.constants import CLR_WHITE
@@ -30,8 +31,9 @@ class ImageUtils:
             #     np.fromfile(encoded_path, dtype=np.uint8), cv2.IMREAD_COLOR
             # )
             if colored_image is None:
-                msg = f"Unable to read image: {file_path}"
-                raise OSError(msg)
+                raise ImageReadError(
+                    file_path, "OpenCV returned None for colored image"
+                )
             gray_image = cv2.cvtColor(colored_image, cv2.COLOR_BGR2GRAY)
         else:
             gray_image = cv2.imread(encoded_path, cv2.IMREAD_GRAYSCALE)
@@ -39,8 +41,9 @@ class ImageUtils:
             #     np.fromfile(encoded_path, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
             # )
             if gray_image is None:
-                msg = f"Unable to read image: {file_path}"
-                raise OSError(msg)
+                raise ImageReadError(
+                    file_path, "OpenCV returned None for grayscale image"
+                )
             colored_image = None
 
         return gray_image, colored_image

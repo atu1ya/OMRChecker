@@ -9,6 +9,10 @@ from src.algorithm.evaluation.evaluation_config import EvaluationConfig
 from src.algorithm.evaluation.evaluation_meta import evaluate_concatenated_response
 from src.algorithm.template.alignment.template_alignment import apply_template_alignment
 from src.algorithm.template.template import Template
+from src.exceptions import (
+    InputDirectoryNotFoundError,
+    TemplateNotFoundError,
+)
 from src.schemas.constants import DEFAULT_ANSWERS_SUMMARY_FORMAT_STRING
 from src.schemas.defaults import CONFIG_DEFAULTS
 from src.utils import constants
@@ -25,8 +29,7 @@ STATS = Stats()
 
 def entry_point(input_dir: Path, args: dict) -> None:
     if not input_dir.exists():
-        msg = f"Given input directory does not exist: '{input_dir}'"
-        raise Exception(msg)
+        raise InputDirectoryNotFoundError(input_dir)
     curr_dir = input_dir
     return process_directory_wise(input_dir, curr_dir, args)
 
@@ -140,8 +143,7 @@ def process_directory_wise(
                 appropriate directory."
             )
             # TODO: restore support for --default-template flag
-            msg = f"No template file found in the directory tree of {curr_dir}"
-            raise Exception(msg)
+            raise TemplateNotFoundError(curr_dir)
 
         output_dir = Path(args["output_dir"], curr_dir.relative_to(root_dir))
 
@@ -311,6 +313,8 @@ def process_single_file(
                 )
             result["status"] = "error"
             result["error"] = "NO_MARKER_ERR"
+            # Log the marker detection error but don't raise to allow batch processing
+            logger.warning(f"Marker detection failed for '{file_path}'")
             return result
 
         concatenated_omr_response, raw_omr_response = template.read_omr_response(

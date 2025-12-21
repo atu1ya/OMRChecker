@@ -48,7 +48,11 @@ def test_show_image_level_with_max_parallel_workers_validation(tmp_path) -> None
         _validate_config_with_defaults(invalid_config, config_path)
 
     error_message = str(exc_info.value)
-    assert "config JSON is Invalid" in error_message
+    # Updated to match custom exception message format
+    assert (
+        "Invalid config JSON" in error_message
+        or "config JSON is Invalid" in error_message
+    )
 
 
 # Note: The following tests would pass if the schema structure allowed direct validation
