@@ -7,11 +7,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from deepmerge import Merger
-from dotmap import DotMap
 
 from src.schemas.constants import FIELD_STRING_REGEX_GROUPS
 from src.schemas.defaults import CONFIG_DEFAULTS, TEMPLATE_DEFAULTS
 from src.schemas.defaults.evaluation import EVALUATION_CONFIG_DEFAULTS
+from src.schemas.models.config import Config
 from src.utils.constants import FIELD_LABEL_NUMBER_REGEX, SUPPORTED_PROCESSOR_NAMES
 from src.utils.file import load_json
 from src.utils.validations import (
@@ -34,7 +34,16 @@ OVERRIDE_MERGER = Merger(
 )
 
 
-def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> DotMap:
+def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> Config:
+    """Load and merge configuration from file with defaults.
+
+    Args:
+        config_path: Path to the config.json file
+        args: Command line arguments containing outputMode and debug flags
+
+    Returns:
+        Config dataclass instance with merged configuration
+    """
     output_mode = args["outputMode"]
     debug_mode = args["debug"]
     user_tuning_config = load_json(config_path)
@@ -48,14 +57,16 @@ def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> DotMap
     }
     # Note: precedence: file > args > CONFIG_DEFAULTS
     user_tuning_config = OVERRIDE_MERGER.merge(defaults_from_args, user_tuning_config)
+    # Convert CONFIG_DEFAULTS to dict for merging
+    defaults_dict = CONFIG_DEFAULTS.to_dict()
     user_tuning_config = OVERRIDE_MERGER.merge(
-        deepcopy(CONFIG_DEFAULTS), user_tuning_config
+        deepcopy(defaults_dict), user_tuning_config
     )
 
     validate_config_json(user_tuning_config, config_path)
 
     # Inject config path
-    user_tuning_config["path"] = config_path
+    user_tuning_config["path"] = str(config_path)
 
     # Broadcast the default boolean into preprocessor-wise boolean
     show_preprocessors_diff = user_tuning_config["outputs"]["show_preprocessors_diff"]
@@ -64,8 +75,8 @@ def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> DotMap
             SUPPORTED_PROCESSOR_NAMES, show_preprocessors_diff
         )
 
-    # https://github.com/drgrib/dotmap/issues/74
-    return DotMap(user_tuning_config, _dynamic=False)
+    # Convert merged dict to Config dataclass
+    return Config.from_dict(user_tuning_config)
 
 
 def open_template_with_defaults(template_path: Path) -> dict[str, Any]:

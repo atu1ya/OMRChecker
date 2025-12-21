@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
@@ -12,11 +13,11 @@ from src.utils.parsing import open_config_with_defaults
 
 def _get_base_config() -> dict:
     """Get a base config with all required fields from defaults."""
-    # Convert DotMap to dict for easier manipulation
+    # Convert dataclass to dict for manipulation in tests
     return {
-        "thresholding": dict(CONFIG_DEFAULTS.thresholding),
-        "outputs": dict(CONFIG_DEFAULTS.outputs),
-        "processing": dict(CONFIG_DEFAULTS.processing),
+        "thresholding": asdict(CONFIG_DEFAULTS.thresholding),
+        "outputs": asdict(CONFIG_DEFAULTS.outputs),
+        "processing": asdict(CONFIG_DEFAULTS.processing),
     }
 
 

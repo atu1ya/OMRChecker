@@ -428,14 +428,11 @@ class BubblesFieldInterpretation(FieldInterpretation):
             GLOBAL_THRESHOLD_MARGIN,
             MIN_JUMP_SURPLUS_FOR_GLOBAL_FALLBACK,
             CONFIDENT_JUMP_SURPLUS_FOR_DISPARITY,
-        ) = map(
-            config.thresholding.get,
-            [
-                "MIN_JUMP",
-                "GLOBAL_THRESHOLD_MARGIN",
-                "MIN_JUMP_SURPLUS_FOR_GLOBAL_FALLBACK",
-                "CONFIDENT_JUMP_SURPLUS_FOR_DISPARITY",
-            ],
+        ) = (
+            config.thresholding.MIN_JUMP,
+            config.thresholding.GLOBAL_THRESHOLD_MARGIN,
+            config.thresholding.MIN_JUMP_SURPLUS_FOR_GLOBAL_FALLBACK,
+            config.thresholding.CONFIDENT_JUMP_SURPLUS_FOR_DISPARITY,
         )
         bubbles_in_doubt = {
             "by_disparity": [],

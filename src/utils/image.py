@@ -3,12 +3,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 from cv2.typing import MatLike
-from dotmap import DotMap
 from matplotlib import pyplot as plt
 from shapely import LineString, Point
 
 from src.exceptions import ImageReadError
 from src.processors.constants import EDGE_TYPES_IN_ORDER, EdgeType
+from src.schemas.models.config import Config
 from src.utils.checksum import print_file_checksum
 from src.utils.constants import CLR_WHITE
 from src.utils.logger import logger
@@ -22,7 +22,7 @@ class ImageUtils:
     """A Static-only Class to hold common image processing utilities & wrappers over OpenCV functions."""
 
     @staticmethod
-    def read_image_util(file_path: Path, tuning_config: DotMap):
+    def read_image_util(file_path: Path, tuning_config: Config):
         print_file_checksum(file_path, "md5")
         encoded_path = str(file_path)
         if tuning_config.outputs.colored_outputs_enabled:

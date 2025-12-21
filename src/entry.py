@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path, PurePosixPath
 from time import time
 
-from dotmap import DotMap
 from rich.table import Table
 
 from src.algorithm.evaluation.evaluation_config import EvaluationConfig
@@ -15,6 +14,7 @@ from src.exceptions import (
 )
 from src.schemas.constants import DEFAULT_ANSWERS_SUMMARY_FORMAT_STRING
 from src.schemas.defaults import CONFIG_DEFAULTS
+from src.schemas.models.config import Config
 from src.utils import constants
 from src.utils.csv import thread_safe_csv_append
 from src.utils.file import PathUtils
@@ -80,8 +80,7 @@ def process_directory_wise(
     curr_dir: Path,
     args: dict,
     template: Template | None = None,
-    # TODO: a custom class for tuning_config
-    tuning_config: DotMap = CONFIG_DEFAULTS,
+    tuning_config: Config = CONFIG_DEFAULTS,
     evaluation_config: EvaluationConfig | None = None,
 ) -> None:
     # Update local tuning_config (in current recursion stack)
@@ -497,7 +496,7 @@ def process_directory_files(
     files_counter = 0
 
     # Get max workers from config, default to 4 threads
-    max_workers = tuning_config.processing.get("max_parallel_workers", 4)
+    max_workers = tuning_config.processing.max_parallel_workers
 
     # Disable parallel processing if show_image_level > 0 (interactive mode)
     if tuning_config.outputs.show_image_level > 0:

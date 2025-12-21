@@ -183,9 +183,7 @@ class TemplateLayout:
         self.pre_processors = []
         for pre_processor in pre_processors_object:
             # ruff: noqa: N806
-            ImageTemplateProcessorClass = PROCESSOR_MANAGER.processors[
-                pre_processor["name"]
-            ]
+            ImageTemplateProcessorClass = PROCESSOR_MANAGER[pre_processor["name"]]
             pre_processor_instance = ImageTemplateProcessorClass(
                 options=pre_processor["options"],
                 relative_dir=relative_dir,

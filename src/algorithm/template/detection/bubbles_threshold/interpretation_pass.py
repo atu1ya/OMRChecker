@@ -90,18 +90,10 @@ class BubblesThresholdInterpretationPass(FieldTypeInterpretationPass):
 
     def get_outlier_deviation_threshold(self, file_path, all_outlier_deviations):
         config = self.tuning_config
-        (
-            MIN_JUMP_STD,
-            JUMP_DELTA_STD,
-            GLOBAL_PAGE_THRESHOLD_STD,
-        ) = map(
-            config.thresholding.get,
-            [
-                "MIN_JUMP_STD",
-                "JUMP_DELTA_STD",
-                "GLOBAL_PAGE_THRESHOLD_STD",
-            ],
-        )
+        # ruff: noqa: N806
+        MIN_JUMP_STD = config.thresholding.MIN_JUMP_STD
+        JUMP_DELTA_STD = config.thresholding.JUMP_DELTA_STD
+        GLOBAL_PAGE_THRESHOLD_STD = config.thresholding.GLOBAL_PAGE_THRESHOLD_STD
         (
             outlier_deviation_threshold_for_file,
             _,
@@ -119,19 +111,10 @@ class BubblesThresholdInterpretationPass(FieldTypeInterpretationPass):
 
     def get_fallback_threshold(self, file_path, field_wise_means_and_refs):
         config = self.tuning_config
-        (
-            # ruff: noqa: N806
-            GLOBAL_PAGE_THRESHOLD,
-            MIN_JUMP,
-            JUMP_DELTA,
-        ) = map(
-            config.thresholding.get,
-            [
-                "GLOBAL_PAGE_THRESHOLD",
-                "MIN_JUMP",
-                "JUMP_DELTA",
-            ],
-        )
+        # ruff: noqa: N806
+        GLOBAL_PAGE_THRESHOLD = config.thresholding.GLOBAL_PAGE_THRESHOLD
+        MIN_JUMP = config.thresholding.MIN_JUMP
+        JUMP_DELTA = config.thresholding.JUMP_DELTA
 
         # Note: Plotting takes Significant times here --> Change Plotting args
         # to support show_image_level
