@@ -26,7 +26,7 @@ class AutoRotate(ImageTemplatePreprocessor):
                 msg,
                 context={"reference_image_path": str(path)},
             )
-        self.reference_image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+        self.reference_image = ImageUtils.load_image(path, cv2.IMREAD_GRAYSCALE)
         self.marker_dimensions = self.options.get("markerDimensions", None)
         self.resized_reference = self.reference_image
         self.threshold = self.options.get("threshold", None)

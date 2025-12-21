@@ -179,8 +179,8 @@ class CropOnCustomMarkers(CropOnPatchesCommon):
                 reference_image = self.loaded_reference_images[reference_image_path]
             else:
                 # TODO: add colored support later based on image_type passed at parent level
-                reference_image = cv2.imread(
-                    str(reference_image_path), cv2.IMREAD_GRAYSCALE
+                reference_image = ImageUtils.load_image(
+                    reference_image_path, cv2.IMREAD_GRAYSCALE
                 )
                 self.loaded_reference_images[reference_image_path] = reference_image
 

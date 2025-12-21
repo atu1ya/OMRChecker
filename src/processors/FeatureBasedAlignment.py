@@ -27,7 +27,7 @@ class FeatureBasedAlignment(ImageTemplatePreprocessor):
 
         # process reference image
         self.ref_path = self.get_relative_path(options["reference"])
-        ref_img = cv2.imread(str(self.ref_path), cv2.IMREAD_GRAYSCALE)
+        ref_img = ImageUtils.load_image(self.ref_path, cv2.IMREAD_GRAYSCALE)
         self.ref_img = ImageUtils.resize_to_shape(self.processing_image_shape, ref_img)
         # get options with defaults
         self.max_features = int(options.get("maxFeatures", 500))

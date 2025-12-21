@@ -22,28 +22,41 @@ class ImageUtils:
     """A Static-only Class to hold common image processing utilities & wrappers over OpenCV functions."""
 
     @staticmethod
+    def load_image(file_path: Path, mode: int = cv2.IMREAD_GRAYSCALE) -> MatLike:
+        """Load an image from disk with consistent error handling.
+
+        Args:
+            file_path: Path to the image file
+            mode: OpenCV imread mode (IMREAD_GRAYSCALE, IMREAD_COLOR, IMREAD_UNCHANGED)
+
+        Returns:
+            Loaded image as numpy array
+
+        Raises:
+            ImageReadError: If the image cannot be loaded
+        """
+        image = cv2.imread(str(file_path), mode)
+        if image is None:
+            mode_names = {
+                cv2.IMREAD_GRAYSCALE: "grayscale",
+                cv2.IMREAD_COLOR: "color",
+                cv2.IMREAD_UNCHANGED: "unchanged",
+            }
+            mode_name = mode_names.get(mode, f"mode {mode}")
+            raise ImageReadError(
+                file_path,
+                f"OpenCV returned None when loading image in {mode_name} mode",
+            )
+        return image
+
+    @staticmethod
     def read_image_util(file_path: Path, tuning_config: Config):
         print_file_checksum(file_path, "md5")
-        encoded_path = str(file_path)
         if tuning_config.outputs.colored_outputs_enabled:
-            colored_image = cv2.imread(encoded_path, cv2.IMREAD_COLOR)
-            # colored_image = cv2.imdecode(
-            #     np.fromfile(encoded_path, dtype=np.uint8), cv2.IMREAD_COLOR
-            # )
-            if colored_image is None:
-                raise ImageReadError(
-                    file_path, "OpenCV returned None for colored image"
-                )
+            colored_image = ImageUtils.load_image(file_path, cv2.IMREAD_COLOR)
             gray_image = cv2.cvtColor(colored_image, cv2.COLOR_BGR2GRAY)
         else:
-            gray_image = cv2.imread(encoded_path, cv2.IMREAD_GRAYSCALE)
-            # gray_image = cv2.imdecode(
-            #     np.fromfile(encoded_path, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
-            # )
-            if gray_image is None:
-                raise ImageReadError(
-                    file_path, "OpenCV returned None for grayscale image"
-                )
+            gray_image = ImageUtils.load_image(file_path, cv2.IMREAD_GRAYSCALE)
             colored_image = None
 
         return gray_image, colored_image

@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 
+from src.utils.image import ImageUtils
+
 
 def copy_image_to_snapshot(source_path, destination_path) -> None:
     shutil.copyfile(source_path, destination_path)
@@ -18,7 +20,7 @@ def open_image(image_path: Path) -> MatLike:
         msg = f"Image not found at: {image_path}."
         raise FileNotFoundError(msg)
 
-    return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+    return ImageUtils.load_image(image_path, cv2.IMREAD_UNCHANGED)
 
 
 def image_snapshot_parser_hook(parser) -> None:
