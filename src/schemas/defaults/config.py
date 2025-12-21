@@ -45,6 +45,6 @@ CONFIG_DEFAULTS = Config(
         filter_out_multimarked_files=False,
     ),
     processing=ProcessingConfig(
-        max_parallel_workers=4,  # Number of worker threads for parallel processing (1 = sequential)
+        max_parallel_workers=1,  # Number of worker threads for parallel processing (1 = sequential)
     ),
 )

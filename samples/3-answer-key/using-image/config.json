@@ -6,5 +6,8 @@
     ],
     "show_image_level": 0,
     "colored_outputs_enabled": true
+  },
+  "processing": {
+    "max_parallel_workers": 4
   }
 }

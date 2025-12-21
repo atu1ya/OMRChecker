@@ -50,7 +50,7 @@ class OutputsConfig:
 class ProcessingConfig:
     """Configuration for parallel processing."""
 
-    max_parallel_workers: int = 4
+    max_parallel_workers: int = 1
 
 
 @dataclass
