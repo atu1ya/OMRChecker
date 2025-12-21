@@ -207,8 +207,12 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [lint.per-file-ignores]
 # Ignore all directories named `tests`.
-"src/tests/**/*.py" = ["INP001", "S101", "N802", "PT017"]
+"src/tests/**/*.py" = ["INP001", "S101", "N802", "PT017", "S108", "FBT003"]
 "src/processors/helpers/mapping.py" = ["S101"]
+# Template config uses mixedCase to match JSON schema field names
+"src/schemas/models/template.py" = ["N815"]
+# Serialization utility needs Any for generic handling
+"src/utils/serialization.py" = ["ANN401", "PLR0911"]
 
 # Import sorting configuration (replaces isort)
 # [lint.isort]

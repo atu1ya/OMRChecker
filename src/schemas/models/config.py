@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src.utils.serialization import dataclass_to_dict
+
 
 @dataclass
 class ThresholdingConfig:
@@ -88,38 +90,7 @@ class Config:
         Returns:
             Dictionary representation of the config
         """
-        return {
-            "path": str(self.path),
-            "thresholding": {
-                "GAMMA_LOW": self.thresholding.GAMMA_LOW,
-                "MIN_GAP_TWO_BUBBLES": self.thresholding.MIN_GAP_TWO_BUBBLES,
-                "MIN_JUMP": self.thresholding.MIN_JUMP,
-                "CONFIDENT_JUMP_SURPLUS_FOR_DISPARITY": self.thresholding.CONFIDENT_JUMP_SURPLUS_FOR_DISPARITY,
-                "MIN_JUMP_SURPLUS_FOR_GLOBAL_FALLBACK": self.thresholding.MIN_JUMP_SURPLUS_FOR_GLOBAL_FALLBACK,
-                "GLOBAL_THRESHOLD_MARGIN": self.thresholding.GLOBAL_THRESHOLD_MARGIN,
-                "JUMP_DELTA": self.thresholding.JUMP_DELTA,
-                "GLOBAL_PAGE_THRESHOLD": self.thresholding.GLOBAL_PAGE_THRESHOLD,
-                "GLOBAL_PAGE_THRESHOLD_STD": self.thresholding.GLOBAL_PAGE_THRESHOLD_STD,
-                "MIN_JUMP_STD": self.thresholding.MIN_JUMP_STD,
-                "JUMP_DELTA_STD": self.thresholding.JUMP_DELTA_STD,
-            },
-            "outputs": {
-                "output_mode": self.outputs.output_mode,
-                "display_image_dimensions": self.outputs.display_image_dimensions,
-                "show_image_level": self.outputs.show_image_level,
-                "show_preprocessors_diff": self.outputs.show_preprocessors_diff,
-                "save_image_level": self.outputs.save_image_level,
-                "show_logs_by_type": self.outputs.show_logs_by_type,
-                "save_detections": self.outputs.save_detections,
-                "colored_outputs_enabled": self.outputs.colored_outputs_enabled,
-                "save_image_metrics": self.outputs.save_image_metrics,
-                "show_confidence_metrics": self.outputs.show_confidence_metrics,
-                "filter_out_multimarked_files": self.outputs.filter_out_multimarked_files,
-            },
-            "processing": {
-                "max_parallel_workers": self.processing.max_parallel_workers,
-            },
-        }
+        return dataclass_to_dict(self)
 
     def get(self, key: str, default=None):
         """Get value by key (backwards compatibility).

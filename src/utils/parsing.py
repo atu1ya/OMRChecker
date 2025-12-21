@@ -81,16 +81,44 @@ def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> Config
 
 
 def open_template_with_defaults(template_path: Path) -> dict[str, Any]:
+    """Load and merge template configuration from file with defaults.
+
+    Args:
+        template_path: Path to the template.json file
+
+    Returns:
+        Dictionary representation of template configuration
+
+    Note:
+        Returns dict for backward compatibility with existing code that expects
+        dict-like access. Uses TemplateConfig dataclass internally for validation.
+    """
     user_template = load_json(template_path)
-    user_template = OVERRIDE_MERGER.merge(deepcopy(TEMPLATE_DEFAULTS), user_template)
+    # Convert TEMPLATE_DEFAULTS to dict for merging
+    defaults_dict = TEMPLATE_DEFAULTS.to_dict()
+    user_template = OVERRIDE_MERGER.merge(deepcopy(defaults_dict), user_template)
     validate_template_json(user_template, template_path)
     return user_template
 
 
 def open_evaluation_with_defaults(evaluation_path: Path) -> dict[str, Any]:
+    """Load and merge evaluation configuration from file with defaults.
+
+    Args:
+        evaluation_path: Path to the evaluation.json file
+
+    Returns:
+        Dictionary representation of evaluation configuration
+
+    Note:
+        Returns dict for backward compatibility with existing code that expects
+        dict-like access. Uses EvaluationConfig dataclass internally for validation.
+    """
     user_evaluation_config = load_json(evaluation_path)
+    # Convert EVALUATION_CONFIG_DEFAULTS to dict for merging
+    defaults_dict = EVALUATION_CONFIG_DEFAULTS.to_dict()
     user_evaluation_config = OVERRIDE_MERGER.merge(
-        deepcopy(EVALUATION_CONFIG_DEFAULTS), user_evaluation_config
+        deepcopy(defaults_dict), user_evaluation_config
     )
     validate_evaluation_json(user_evaluation_config, evaluation_path)
     return user_evaluation_config
