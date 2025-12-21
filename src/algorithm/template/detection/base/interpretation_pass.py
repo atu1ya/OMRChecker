@@ -20,8 +20,8 @@ class FieldTypeInterpretationPass(FilePassAggregates):
         file_level_detection_aggregates,
         file_level_aggregates,
     ) -> FieldInterpretation:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     def initialize_field_level_aggregates(self, field) -> None:
         super().initialize_field_level_aggregates(field)

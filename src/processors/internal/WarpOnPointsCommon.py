@@ -6,6 +6,7 @@ import numpy as np
 from cv2.typing import MatLike
 from scipy.interpolate import griddata
 
+from src.exceptions import ImageProcessingError, TemplateValidationError
 from src.processors.constants import WarpMethod, WarpMethodFlags
 from src.processors.helpers.rectify import rectify
 from src.processors.interfaces.ImageTemplatePreprocessor import (
@@ -30,8 +31,8 @@ class WarpOnPointsCommon(ImageTemplatePreprocessor):
     }
 
     def validate_and_remap_options_schema(self, _options) -> dict:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement validate_and_remap_options_schema"
+        raise NotImplementedError(msg)
 
     def __init__(
         self, options, relative_dir, save_image_ops, default_processing_image_shape
@@ -74,14 +75,14 @@ class WarpOnPointsCommon(ImageTemplatePreprocessor):
         return []
 
     def prepare_image_before_extraction(self, _image):
-        msg = "Not Implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement prepare_image_before_extraction"
+        raise NotImplementedError(msg)
 
     def extract_control_destination_points(
         self, _image, _colored_image, _file_path
     ) -> tuple[Any, Any, Any]:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement extract_control_destination_points"
+        raise NotImplementedError(msg)
 
     def apply_filter(self, image, colored_image, _template, file_path):
         config = self.tuning_config
@@ -142,7 +143,10 @@ class WarpOnPointsCommon(ImageTemplatePreprocessor):
             )
         else:
             msg = f"Invalid warp method: {self.warp_method}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={"warp_method": self.warp_method},
+            )
 
         title_prefix = "Warped Image"
         if config.outputs.show_image_level >= 4:
@@ -202,7 +206,13 @@ class WarpOnPointsCommon(ImageTemplatePreprocessor):
         if len(parsed_control_points) > 4:
             logger.critical(f"Too many parsed_control_points={parsed_control_points}")
             msg = f"Expected 4 control points for perspective transform, found {len(parsed_control_points)}. If you want to use a different method, pass it in tuningOptions['warpMethod']"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={
+                    "parsed_control_points_count": len(parsed_control_points),
+                    "expected_count": 4,
+                },
+            )
         # TODO: order the points from outside in parsing itself
         parsed_control_points, _ = MathUtils.order_four_points(
             parsed_control_points, dtype="float32"
@@ -317,7 +327,13 @@ class WarpOnPointsCommon(ImageTemplatePreprocessor):
 
         if image.shape[:2] != colored_image.shape[:2]:
             msg = f"Image shape {image.shape[:2]} does not match colored image shape {colored_image.shape[:2]}"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "image_shape": image.shape[:2],
+                    "colored_image_shape": colored_image.shape[:2],
+                },
+            )
 
         if self.enable_cropping:
             # TODO: >> get this more reliably - use minZoneRect instead?

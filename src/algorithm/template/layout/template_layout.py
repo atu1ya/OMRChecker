@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.algorithm.template.layout.field_block.base import FieldBlock
+from src.exceptions import OMRCheckerError
 from src.processors.constants import FieldDetectionType
 from src.processors.manager import PROCESSOR_MANAGER
 from src.utils.constants import BUILTIN_BUBBLE_FIELD_TYPES
@@ -173,8 +174,11 @@ class TemplateLayout:
                 "Custom output columns are passed but sort_type is not"
                 "CUSTOM: {sort_type}. Please set sortType to CUSTOM in outputColumns."
             )
-            error_message = f"Invalid sort type: {sort_type} for custom columns"
-            raise Exception(error_message)
+            msg = f"Invalid sort type: {sort_type} for custom columns"
+            raise OMRCheckerError(
+                msg,
+                context={"sort_type": sort_type},
+            )
 
         self.output_columns = parse_fields("Output Columns", custom_order)
 
@@ -214,14 +218,26 @@ class TemplateLayout:
                         f"Cannot find definition for {bubble_field_type} in customBubbleFieldTypes"
                     )
                     msg = f"Invalid bubble field type: {bubble_field_type} in block {block_name}. Have you defined customBubbleFieldTypes?"
-                    raise Exception(msg)
+                    raise OMRCheckerError(
+                        msg,
+                        context={
+                            "bubble_field_type": bubble_field_type,
+                            "block_name": block_name,
+                        },
+                    )
             field_labels = field_block_object["fieldLabels"]
             if len(field_labels) > 1 and "labelsGap" not in field_block_object:
                 logger.critical(
                     f"More than one fieldLabels({field_labels}) provided, but labelsGap not present for block {block_name}"
                 )
                 msg = f"More than one fieldLabels provided, but labelsGap not present for block {block_name}"
-                raise Exception(msg)
+                raise OMRCheckerError(
+                    msg,
+                    context={
+                        "field_labels": field_labels,
+                        "block_name": block_name,
+                    },
+                )
 
     # TODO: move out to template_alignment.py
     def setup_alignment(self, alignment_object, relative_dir) -> None:
@@ -293,7 +309,13 @@ class TemplateLayout:
                     f"For '{custom_label}', Missing labels - {missing_custom_labels}"
                 )
                 msg = f"Missing field block label(s) in the given template for {missing_custom_labels} from '{custom_label}'"
-                raise Exception(msg)
+                raise OMRCheckerError(
+                    msg,
+                    context={
+                        "custom_label": custom_label,
+                        "missing_labels": list(missing_custom_labels),
+                    },
+                )
 
             if not all_parsed_custom_labels.isdisjoint(parsed_labels_set):
                 # Note: this can be made a warning, but it's a choice
@@ -301,7 +323,13 @@ class TemplateLayout:
                     f"field strings overlap for labels: {label_strings} and existing custom labels: {all_parsed_custom_labels}"
                 )
                 msg = f"The field strings for custom label '{custom_label}' overlap with other existing custom labels"
-                raise Exception(msg)
+                raise OMRCheckerError(
+                    msg,
+                    context={
+                        "custom_label": custom_label,
+                        "label_strings": label_strings,
+                    },
+                )
 
             all_parsed_custom_labels.update(parsed_labels)
 
@@ -349,7 +377,10 @@ class TemplateLayout:
         if len(missing_output_columns) > 0:
             logger.critical(f"Missing output columns: {missing_output_columns}")
             msg = "Some columns are missing in the field blocks for the given output columns"
-            raise Exception(msg)
+            raise OMRCheckerError(
+                msg,
+                context={"missing_output_columns": list(missing_output_columns)},
+            )
 
         all_template_columns_set = set(non_custom_columns + all_custom_columns)
         missing_label_columns = sorted(
@@ -416,7 +447,14 @@ class TemplateLayout:
                 f"An overlap found between field string: {field_labels} in block '{block_name}' and existing labels: {self.all_parsed_labels}"
             )
             msg = f"The field strings for field block {block_name} overlap with other existing fields: {overlap}"
-            raise Exception(msg)
+            raise OMRCheckerError(
+                msg,
+                context={
+                    "block_name": block_name,
+                    "field_labels": field_labels,
+                    "overlap": list(overlap),
+                },
+            )
         self.all_parsed_labels.update(field_labels_set)
 
         page_width, page_height = self.template_dimensions
@@ -435,7 +473,15 @@ class TemplateLayout:
             or block_start_y < 0
         ):
             msg = f"Overflowing field block '{block_name}' with origin {block_instance.bounding_box_origin} and dimensions {block_instance.bounding_box_dimensions} in template with dimensions {self.template_dimensions}"
-            raise Exception(msg)
+            raise OMRCheckerError(
+                msg,
+                context={
+                    "block_name": block_name,
+                    "bounding_box_origin": block_instance.bounding_box_origin,
+                    "bounding_box_dimensions": block_instance.bounding_box_dimensions,
+                    "template_dimensions": self.template_dimensions,
+                },
+            )
 
     def reset_all_shifts(self) -> None:
         # Note: field blocks offset is static and independent of "shifts"

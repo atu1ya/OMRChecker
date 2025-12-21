@@ -5,22 +5,22 @@ from typing import Never
 class TextBarcode:
     @staticmethod
     def get_all_text_detections(_image, _confidence_threshold=0.8) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     @staticmethod
     def get_single_text_detection(
         _image, _confidence_threshold=0.8, _clear_whitespace=True
     ) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     @staticmethod
     def read_texts_with_boxes(
         _image, _confidence_threshold=0.8, _sort_by_score=True
     ) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     @staticmethod
     def cleanup_text(text):

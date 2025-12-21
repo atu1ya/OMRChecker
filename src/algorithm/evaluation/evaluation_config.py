@@ -1,6 +1,7 @@
 import re
 
 from src.algorithm.evaluation.evaluation_config_for_set import EvaluationConfigForSet
+from src.exceptions import ConfigError
 from src.schemas.constants import DEFAULT_SET_NAME
 from src.utils.logger import logger
 from src.utils.parsing import OVERRIDE_MERGER, open_evaluation_with_defaults
@@ -67,8 +68,11 @@ class EvaluationConfig:
         all_names = set()
         for name, _ in self.conditional_sets:
             if name in all_names:
-                msg = f"Repeated set name {name} in conditional_sets in the given evaluation.json: {self.path}"
-                raise Exception(msg)
+                error_msg = f"Repeated set name {name} in conditional_sets in the given evaluation.json: {self.path}"
+                raise ConfigError(
+                    error_msg,
+                    context={"set_name": name, "evaluation_path": str(self.path)},
+                )
             all_names.add(name)
 
     # Public function

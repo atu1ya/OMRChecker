@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from src.exceptions import ImageProcessingError
 from src.utils.constants import CLR_BLACK, CLR_DARK_GRAY, CLR_GRAY, CLR_GREEN, TEXT_SIZE
 from src.utils.image import ImageUtils
 from src.utils.math import MathUtils
@@ -48,7 +49,10 @@ class DrawingUtils:
     ) -> None:
         if None in contour:
             msg = "Invalid contour provided"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={"contour": str(contour)},
+            )
         cv2.drawContours(
             image,
             [np.intp(contour)],
@@ -163,7 +167,10 @@ class DrawingUtils:
         if centered:
             if callable(position):
                 msg = f"centered={centered} but position is a callable: {position}"
-                raise Exception(msg)
+                raise ImageProcessingError(
+                    msg,
+                    context={"centered": centered, "position": str(position)},
+                )
             text_position = position
 
             def position(size_x: int, size_y: int) -> tuple[int, int]:

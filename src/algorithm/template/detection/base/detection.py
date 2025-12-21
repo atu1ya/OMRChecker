@@ -30,5 +30,5 @@ class FieldDetection:
 
     @abstractmethod
     def run_detection(self) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError

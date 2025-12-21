@@ -6,7 +6,7 @@ from cv2.typing import MatLike
 from matplotlib import pyplot as plt
 from shapely import LineString, Point
 
-from src.exceptions import ImageReadError
+from src.exceptions import ImageProcessingError, ImageReadError
 from src.processors.constants import EDGE_TYPES_IN_ORDER, EdgeType
 from src.schemas.models.config import Config
 from src.utils.checksum import print_file_checksum
@@ -142,13 +142,17 @@ class ImageUtils:
         # otherwise OpenCV has changed their cv2.findContours return
         # signature yet again and I have no idea WTH is going on
         else:
-            msg = (
+            (
                 "Contours tuple must have length 2 or 3, "
                 "otherwise OpenCV changed their cv2.findContours return "
                 "signature yet again. Refer to OpenCV's documentation "
                 f"in that case. provided: {len(cnts)}"
             )
-            raise Exception(msg)
+            msg = "Invalid contours format from OpenCV"
+            raise ImageProcessingError(
+                msg,
+                context={"contours_length": len(cnts)},
+            )
 
         # return the actual contours array
         return cnts
@@ -202,8 +206,14 @@ class ImageUtils:
             max_points = total_points
         allowed_min_points = 2
         if max_points < allowed_min_points:
-            msg = f"max_points={max_points} < {allowed_min_points}"
-            raise Exception(msg)
+            msg = f"Maximum points ({max_points}) is less than minimum required ({allowed_min_points})"
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "max_points": max_points,
+                    "allowed_min_points": allowed_min_points,
+                },
+            )
         start, end = warped_line
 
         warped_line_length = MathUtils.distance(start, end)
@@ -248,8 +258,14 @@ class ImageUtils:
             warped_points.append(warped_point)
 
         if len(warped_points) > max_points:
-            msg = f"len(warped_points)={len(warped_points)} > max_points={max_points}"
-            raise Exception(msg)
+            msg = f"Generated points ({len(warped_points)}) exceeds maximum allowed ({max_points})"
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "warped_points_count": len(warped_points),
+                    "max_points": max_points,
+                },
+            )
 
         # Assert that the float error is not skewing the estimations badly
         allowed_error = 0.02
@@ -257,8 +273,15 @@ class ImageUtils:
             MathUtils.distance(warped_points[-1], end) / warped_line_length
             > allowed_error
         ):
-            msg = f"{warped_points[-1]} != {end}"
-            raise Exception(msg)
+            msg = f"Warped point endpoint mismatch: {warped_points[-1]} != {end}"
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "last_warped_point": str(warped_points[-1]),
+                    "expected_end": str(end),
+                    "allowed_error": allowed_error,
+                },
+            )
 
         return control_points, warped_points
 

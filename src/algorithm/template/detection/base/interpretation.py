@@ -42,8 +42,8 @@ class FieldInterpretation:
 
     @abstractmethod
     def get_drawing_instance(self) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     @abstractmethod
     def run_interpretation(
@@ -52,13 +52,13 @@ class FieldInterpretation:
         file_level_detection_aggregates,
         file_level_interpretation_aggregates,
     ) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     @abstractmethod
     def get_field_interpretation_string() -> str:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     def get_field_level_confidence_metrics(self):
         return self.field_level_confidence_metrics

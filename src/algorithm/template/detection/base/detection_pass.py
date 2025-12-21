@@ -22,8 +22,8 @@ class FieldTypeDetectionPass(FilePassAggregates):
     def get_field_detection(
         self, field: Field, gray_image, colored_image
     ) -> FieldDetection:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
 
     def update_aggregates_on_processed_field_detection(
         self, field: Field, field_detection: FieldDetection

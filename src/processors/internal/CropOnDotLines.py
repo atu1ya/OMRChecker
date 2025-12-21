@@ -6,6 +6,7 @@ import numpy as np
 from src.constants import (
     PIXEL_VALUE_MAX,
 )
+from src.exceptions import ImageProcessingError, TemplateValidationError
 from src.processors.constants import (
     DOT_ZONE_TYPES_IN_ORDER,
     EDGE_TYPES_IN_ORDER,
@@ -248,7 +249,14 @@ class CropOnDotLines(CropOnPatchesCommon):
 
             if not (zone_h > blur_h and zone_w > blur_w):
                 msg = f"The zone '{zone_label}' is smaller than provided lineBlurKernel: {zone.shape} < {line_blur_kernel}"
-                raise Exception(msg)
+                raise TemplateValidationError(
+                    msg,
+                    context={
+                        "zone_label": zone_label,
+                        "zone_shape": zone.shape,
+                        "line_blur_kernel": line_blur_kernel,
+                    },
+                )
             zone = cv2.GaussianBlur(zone, line_blur_kernel, 0)
 
         # Make boxes darker (less gamma)
@@ -308,7 +316,13 @@ class CropOnDotLines(CropOnPatchesCommon):
 
         if edge_contours_map is None:
             msg = f"No line match found at origin: {zone_description['origin']} with dimensions: {zone_description['dimensions']}"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "origin": zone_description["origin"],
+                    "dimensions": zone_description["dimensions"],
+                },
+            )
         return edge_contours_map
 
     def find_dot_corners_from_options(self, image, zone_description, _file_path):
@@ -326,7 +340,14 @@ class CropOnDotLines(CropOnPatchesCommon):
 
             if not (zone_h > blur_h and zone_w > blur_w):
                 msg = f"The zone '{zone_label}' is smaller than provided dotBlurKernel: {zone.shape} < {dot_blur_kernel}"
-                raise Exception(msg)
+                raise TemplateValidationError(
+                    msg,
+                    context={
+                        "zone_label": zone_label,
+                        "zone_shape": zone.shape,
+                        "dot_blur_kernel": dot_blur_kernel,
+                    },
+                )
             zone = cv2.GaussianBlur(zone, dot_blur_kernel, 0)
 
         # add white padding (to avoid dilations sticking to edges)
@@ -390,7 +411,13 @@ class CropOnDotLines(CropOnPatchesCommon):
                 )
 
             msg = f"No patch/dot found at origin: {zone_description['origin']} with dimensions: {zone_description['dimensions']}"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "origin": zone_description["origin"],
+                    "dimensions": zone_description["dimensions"],
+                },
+            )
 
         return corners
 
@@ -462,7 +489,10 @@ class CropOnDotLines(CropOnPatchesCommon):
             )
         else:
             msg = f"Unsupported scanner type: {scanner_type}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={"scanner_type": scanner_type},
+            )
 
         # TODO: less confidence if given dimensions differ from matched block size (also give a warning)
         if config.outputs.show_image_level >= 5:

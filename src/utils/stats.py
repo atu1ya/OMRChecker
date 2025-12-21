@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from src.exceptions import ConfigError
 from src.utils.parsing import default_dump
 
 
@@ -11,7 +12,13 @@ class StatsByLabel:
     def push(self, label, number=1) -> None:
         if label not in self.label_counts:
             msg = f"Unknown label passed to stats by label: {label}, allowed labels: {self.label_counts.keys()}"
-            raise Exception(msg)
+            raise ConfigError(
+                msg,
+                context={
+                    "label": label,
+                    "allowed_labels": list(self.label_counts.keys()),
+                },
+            )
 
         self.label_counts[label] += number
 

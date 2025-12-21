@@ -7,6 +7,7 @@ from src.algorithm.template.layout.field.ocr_field import OCRField
 from src.algorithm.template.layout.field_block.field_block_drawing import (
     FieldBlockDrawing,
 )
+from src.exceptions import FieldDefinitionError
 from src.processors.constants import FieldDetectionType
 from src.utils.parsing import default_dump, parse_fields
 
@@ -101,8 +102,11 @@ class FieldBlock:
         elif field_detection_type == FieldDetectionType.BARCODE_QR:
             self.setup_barcode_qr_field_block(field_block_object)
         else:
-            msg = f"Unsupported field detection type: {field_detection_type}"
-            raise Exception(msg)
+            error_msg = f"Unsupported field detection type: {field_detection_type}"
+            raise FieldDefinitionError(
+                error_msg,
+                context={"field_detection_type": field_detection_type},
+            )
         # TODO: support barcode, photo blob, etc custom field types
         # logger.info(
         #     "field_detection_type", field_detection_type, "labels_gap", labels_gap

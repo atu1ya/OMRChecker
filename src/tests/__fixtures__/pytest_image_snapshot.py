@@ -16,7 +16,7 @@ def copy_image_to_snapshot(source_path, destination_path) -> None:
 def open_image(image_path: Path) -> MatLike:
     if not image_path.exists():
         msg = f"Image not found at: {image_path}."
-        raise Exception(msg)
+        raise FileNotFoundError(msg)
 
     return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 

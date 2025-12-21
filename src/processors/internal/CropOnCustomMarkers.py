@@ -4,6 +4,7 @@ from typing import ClassVar
 import cv2
 import numpy as np
 
+from src.exceptions import ImageProcessingError, ImageReadError, TemplateValidationError
 from src.processors.constants import (
     MARKER_ZONE_TYPES_IN_ORDER,
     ScannerType,
@@ -139,14 +140,23 @@ class CropOnCustomMarkers(CropOnPatchesCommon):
             if zone_preset in self.scan_zone_presets_for_layout["FOUR_MARKERS"]:
                 if "referenceImage" not in custom_options:
                     msg = f"referenceImage not provided for custom marker zone {zone_label}"
-                    raise Exception(msg)
+                    raise TemplateValidationError(
+                        msg,
+                        context={"zone_label": zone_label},
+                    )
                 reference_image_path = self.get_relative_path(
                     custom_options["referenceImage"]
                 )
 
                 if not reference_image_path.exists():
                     msg = f"Marker reference image not found for {zone_label} at path provided: {reference_image_path}"
-                    raise Exception(msg)
+                    raise ImageReadError(
+                        msg,
+                        context={
+                            "zone_label": zone_label,
+                            "reference_image_path": str(reference_image_path),
+                        },
+                    )
 
     def init_resized_markers(self) -> None:
         self.loaded_reference_images = {}
@@ -279,7 +289,10 @@ class CropOnCustomMarkers(CropOnPatchesCommon):
             zone_start, zone_end = [1, half_height], [half_width, h]
         else:
             msg = f"Unexpected quadrant patch_type {patch_type}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={"patch_type": patch_type},
+            )
 
         origin = [
             (zone_start[0] + zone_end[0] - marker_w) // 2,
@@ -448,7 +461,10 @@ class CropOnCustomMarkers(CropOnPatchesCommon):
             )
         if is_not_matching:
             msg = f"Error: No marker found in patch {zone_label}"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={"zone_label": zone_label},
+            )
 
         return marker_position, optimal_marker
 

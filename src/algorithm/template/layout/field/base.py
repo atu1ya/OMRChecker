@@ -38,13 +38,13 @@ class Field:
 
     @abstractmethod
     def setup_scan_boxes(self, field_block) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement setup_scan_boxes"
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def get_drawing_instance(self) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement get_drawing_instance"
+        raise NotImplementedError(msg)
 
     def reset_all_shifts(self) -> None:
         # Note: no shifts needed at bubble level

@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from src.exceptions import ImageProcessingError
 from src.utils.constants import CLR_DARK_GREEN, CLR_DARK_RED
 from src.utils.drawing import DrawingUtils
 from src.utils.image import ImageUtils
@@ -79,8 +80,14 @@ class ImageWarpUtils:
         )
         # Note: the warped image dimensions will match to that of the warped triangle's bounding box(with black filling)
         if warped_triangle_box.shape != tuple(reversed(warped_box_dimensions)):
-            msg = f"{warped_triangle_box.shape} != {tuple(reversed(warped_box_dimensions))}"
-            raise Exception(msg)
+            msg = f"Warped triangle box shape mismatch: {warped_triangle_box.shape} != {tuple(reversed(warped_box_dimensions))}"
+            raise ImageProcessingError(
+                msg,
+                context={
+                    "warped_shape": warped_triangle_box.shape,
+                    "expected_shape": tuple(reversed(warped_box_dimensions)),
+                },
+            )
 
         logger.info(source_triangle_box.shape, warped_triangle_box.shape)
 

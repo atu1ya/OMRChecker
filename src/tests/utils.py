@@ -75,8 +75,8 @@ def generate_write_jsons_and_run(
     evaluation_boilerplate=None,
 ) -> Callable:
     if (template_boilerplate or config_boilerplate or evaluation_boilerplate) is None:
-        msg = "No boilerplates found. Provide atleast one boilerplate to write json."
-        raise Exception(msg)
+        msg = "No boilerplates found. Provide at least one boilerplate to write json."
+        raise ValueError(msg)
 
     def write_jsons_and_run(
         mocker,

@@ -7,6 +7,13 @@ from rich.table import Table
 
 from src.algorithm.evaluation.answer_matcher import AnswerMatcher
 from src.algorithm.evaluation.section_marking_scheme import SectionMarkingScheme
+from src.exceptions import (
+    ConfigError,
+    EvaluationError,
+    FieldDefinitionError,
+    ImageReadError,
+    InputFileNotFoundError,
+)
 from src.schemas.constants import (
     DEFAULT_SECTION_KEY,
     SCHEMA_VERDICTS_IN_ORDER,
@@ -148,14 +155,20 @@ class EvaluationConfigForSet:
             questions_in_order = answer_key["question"].to_list()
             answers_in_order = answer_key["answer"].to_list()
         elif not answer_key_image_path:
-            msg = f"Answer key csv not found at '{csv_path}' and answer key image not provided to generate the csv"
-            raise Exception(msg)
+            error_msg = f"Answer key csv not found at '{csv_path}' and answer key image not provided to generate the csv"
+            raise InputFileNotFoundError(
+                error_msg,
+                context={"csv_path": str(csv_path)},
+            )
         else:
             # Attempt answer key image to generate the csv
             image_path = curr_dir.joinpath(answer_key_image_path)
             if not image_path.exists():
-                msg = f"Answer key image not found at '{image_path}'"
-                raise Exception(msg)
+                error_msg = f"Answer key image not found at '{image_path}'"
+                raise ImageReadError(
+                    error_msg,
+                    context={"image_path": str(image_path)},
+                )
 
             self.exclude_files.append(image_path)
 
@@ -170,8 +183,11 @@ class EvaluationConfigForSet:
                 template,
             ) = template.apply_preprocessors(image_path, gray_image, colored_image)
             if gray_image is None:
-                msg = f"Could not read answer key from image {image_path}"
-                raise Exception(msg)
+                error_msg = f"Could not read answer key from image {image_path}"
+                raise ImageReadError(
+                    error_msg,
+                    context={"image_path": str(image_path)},
+                )
 
             _, concatenated_omr_response = template.read_omr_response(
                 gray_image, colored_image, image_path
@@ -197,8 +213,11 @@ class EvaluationConfigForSet:
                     logger.error(
                         f"Found empty answers for the questions: {empty_answered_questions}, empty value used: '{empty_value}'"
                     )
-                    msg = f"Found empty answers in file '{image_path}'. Please check your template again in the --setLayout mode."
-                    raise Exception(msg)
+                    error_msg = f"Found empty answers in file '{image_path}'. Please check your template again in the --setLayout mode."
+                    raise EvaluationError(
+                        error_msg,
+                        context={"image_path": str(image_path)},
+                    )
             else:
                 logger.warning(
                     "questions_in_order not provided, proceeding to use non-empty values as answer key"
@@ -331,8 +350,14 @@ class EvaluationConfigForSet:
             logger.critical(
                 f"questions_in_order({len_questions_in_order}): {questions_in_order}\nanswers_in_order({len_answers_in_order}): {answers_in_order}"
             )
-            msg = f"Unequal lengths for questions_in_order and answers_in_order ({len_questions_in_order} != {len_answers_in_order})"
-            raise Exception(msg)
+            error_msg = f"Unequal lengths for questions_in_order and answers_in_order ({len_questions_in_order} != {len_answers_in_order})"
+            raise FieldDefinitionError(
+                error_msg,
+                context={
+                    "len_questions_in_order": len_questions_in_order,
+                    "len_answers_in_order": len_answers_in_order,
+                },
+            )
 
     def set_parsed_marking_schemes(
         self, marking_schemes, parent_evaluation_config, template
@@ -410,8 +435,11 @@ class EvaluationConfigForSet:
                 continue
             current_set = set(section_scheme.questions)
             if not section_questions.isdisjoint(current_set):
-                msg = f"Section '{section_key}' has overlapping question(s) with other sections locally"
-                raise Exception(msg)
+                error_msg = f"Section '{section_key}' has overlapping question(s) with other sections locally"
+                raise FieldDefinitionError(
+                    error_msg,
+                    context={"section_key": section_key},
+                )
             section_questions = section_questions.union(current_set)
 
         all_questions = set(self.questions_in_order)
@@ -419,7 +447,10 @@ class EvaluationConfigForSet:
         if len(missing_questions) > 0:
             logger.critical(f"Missing answer key for: {missing_questions}")
             msg = "Some questions are missing in the answer key for the given marking scheme(s)"
-            raise Exception(msg)
+            raise EvaluationError(
+                msg,
+                context={"missing_questions": list(missing_questions)},
+            )
 
     def parse_answers_and_map_questions(self):
         answers_in_order = self.answers_in_order
@@ -469,7 +500,10 @@ class EvaluationConfigForSet:
 
             if contains_multi_marked_answer:
                 msg = "Provided answer key contains multiple correct answer(s), but config.filter_out_multimarked_files is True. Scoring will get skipped."
-                raise Exception(msg)
+                raise ConfigError(
+                    msg,
+                    context={"filter_out_multimarked_files": True},
+                )
 
     def validate_format_strings(self) -> None:
         answers_summary_format_string = self.draw_answers_summary[
@@ -480,15 +514,27 @@ class EvaluationConfigForSet:
             # TODO: Same aggregates section-wise: correct/incorrect verdict counts in formatted_answers_summary
             answers_summary_format_string.format(**self.schema_verdict_counts)
         except Exception:
-            msg = f"The format string should contain only allowed variables {SCHEMA_VERDICTS_IN_ORDER}. answers_summary_format_string={answers_summary_format_string}"
-            raise Exception(msg) from None
+            error_msg = f"The format string should contain only allowed variables {SCHEMA_VERDICTS_IN_ORDER}. answers_summary_format_string={answers_summary_format_string}"
+            raise ConfigError(
+                error_msg,
+                context={
+                    "answers_summary_format_string": answers_summary_format_string,
+                    "allowed_variables": list(SCHEMA_VERDICTS_IN_ORDER),
+                },
+            ) from None
 
         score_format_string = self.draw_score["score_format_string"]
         try:
             score_format_string.format(score=0)
         except Exception:
-            msg = f"The format string should contain only allowed variables ['score']. score_format_string={score_format_string}"
-            raise Exception(msg) from None
+            error_msg = f"The format string should contain only allowed variables ['score']. score_format_string={score_format_string}"
+            raise ConfigError(
+                error_msg,
+                context={
+                    "score_format_string": score_format_string,
+                    "allowed_variables": ["score"],
+                },
+            ) from None
 
     # Public function: Externally called methods with higher abstraction level.
     def prepare_and_validate_omr_response(
@@ -505,7 +551,10 @@ class EvaluationConfigForSet:
                 f"Missing OMR response for: {missing_questions} in omr response keys: {omr_response_keys}"
             )
             msg = "Some question keys are missing in the OMR response for the given answer key"
-            raise Exception(msg)
+            raise EvaluationError(
+                msg,
+                context={"missing_keys": list(missing_questions)},
+            )
 
         prefixed_omr_response_questions = {
             k for k in concatenated_omr_response if k.startswith("q")

@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 import cv2
 import numpy as np
 
+from src.exceptions import ImageProcessingError, TemplateValidationError
 from src.processors.constants import (
     EDGE_TYPES_IN_ORDER,
     TARGET_ENDPOINTS_FOR_EDGES,
@@ -34,14 +35,14 @@ class CropOnPatchesCommon(WarpOnPointsCommon):
     def find_and_select_points_from_line(
         self, _image, _zone_preset, _zone_description, _file_path
     ) -> tuple[Any, Any, Any]:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement find_line_corners_from_options"
+        raise NotImplementedError(msg)
 
     def find_dot_corners_from_options(
         self, _image, _zone_description, _file_path
     ) -> tuple[Any, Any]:
-        msg = "Not implemented"
-        raise Exception(msg)
+        msg = "Subclass must implement find_dot_corners_from_options"
+        raise NotImplementedError(msg)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -98,7 +99,10 @@ class CropOnPatchesCommon(WarpOnPointsCommon):
             seen_labels.add(zone_label)
         if len(repeat_labels) > 0:
             msg = f"Found repeated labels in scanZones: {repeat_labels}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={"repeat_labels": list(repeat_labels)},
+            )
 
     # TODO: check if this needs to move into child for working properly (accessing self attributes declared in child in parent's constructor)
     def validate_points_layouts(self) -> None:
@@ -109,7 +113,10 @@ class CropOnPatchesCommon(WarpOnPointsCommon):
             and points_layout != "CUSTOM"
         ):
             msg = f"Invalid pointsLayout provided: {points_layout} for {self}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={"points_layout": points_layout},
+            )
 
         expected_templates = set(self.scan_zone_presets_for_layout[points_layout])
         provided_templates = {scan_zone["zonePreset"] for scan_zone in self.scan_zones}
@@ -118,7 +125,13 @@ class CropOnPatchesCommon(WarpOnPointsCommon):
         if len(not_provided_zone_presets) > 0:
             logger.error(f"not_provided_zone_presets={not_provided_zone_presets}")
             msg = f"Missing a few zonePresets for the pointsLayout {points_layout}"
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={
+                    "points_layout": points_layout,
+                    "not_provided_zone_presets": list(not_provided_zone_presets),
+                },
+            )
 
     def extract_control_destination_points(self, image, _colored_image, file_path):
         config = self.tuning_config
@@ -293,7 +306,10 @@ class CropOnPatchesCommon(WarpOnPointsCommon):
 
         if dot_point is None:
             msg = f"No dot found for zone {zone_label}"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={"zone_label": zone_label},
+            )
 
         destination_rect = np.intp(
             ShapeUtils.compute_scan_zone_rectangle(

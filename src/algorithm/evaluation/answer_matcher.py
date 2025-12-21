@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from src.exceptions import EvaluationError
 from src.schemas.constants import (
     VERDICT_TO_SCHEMA_VERDICT,
     VERDICTS_IN_ORDER,
@@ -72,8 +73,11 @@ class AnswerMatcher:
             # using startswith to handle cases like matched-A
             if question_verdict.startswith(verdict):
                 return VERDICT_TO_SCHEMA_VERDICT[verdict]
-        msg = f"Unable to determine schema verdict for question_verdict: {question_verdict}"
-        raise Exception(msg)
+        error_msg = f"Unable to determine schema verdict for question_verdict: {question_verdict}"
+        raise EvaluationError(
+            error_msg,
+            context={"question_verdict": question_verdict},
+        )
 
     @staticmethod
     def parse_verdict_marking(marking):
@@ -118,8 +122,11 @@ class AnswerMatcher:
         logger.critical(
             f"Unable to determine answer type for answer item: {answer_item}"
         )
-        msg = "Unable to determine answer type"
-        raise Exception(msg)
+        error_msg = "Unable to determine answer type"
+        raise EvaluationError(
+            error_msg,
+            context={"answer_item": str(answer_item)},
+        )
 
     def parse_and_set_answer_item(self, answer_item) -> None:
         answer_type = self.answer_type

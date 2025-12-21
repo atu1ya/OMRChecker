@@ -2,6 +2,7 @@ from pathlib import Path
 
 import cv2
 
+from src.exceptions import ImageProcessingError, ImageReadError
 from src.processors.interfaces.ImageTemplatePreprocessor import (
     ImageTemplatePreprocessor,
 )
@@ -21,7 +22,10 @@ class AutoRotate(ImageTemplatePreprocessor):
         path = self.get_relative_path(self.options["referenceImage"])
         if not path.exists():
             msg = f"Reference image for AutoRotate not found at {path}"
-            raise Exception(msg)
+            raise ImageReadError(
+                msg,
+                context={"reference_image_path": str(path)},
+            )
         self.reference_image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
         self.marker_dimensions = self.options.get("markerDimensions", None)
         self.resized_reference = self.reference_image
@@ -67,6 +71,9 @@ class AutoRotate(ImageTemplatePreprocessor):
                 best_rotation = rotation
 
         if self.threshold is not None and self.threshold["value"] > best_val:
+            score = best_val
+            min_matches = self.threshold["value"]
+            good_matches = []  # Placeholder as actual matches not tracked
             if self.threshold["passthrough"]:
                 logger.warning(
                     "The autorotate score is below threshold. Continuing due to passthrough flag."
@@ -76,7 +83,14 @@ class AutoRotate(ImageTemplatePreprocessor):
                     "The autorotate score is below threshold. Adjust your threshold or check the reference marker and input image."
                 )
                 msg = "The autorotate score is below threshold"
-                raise Exception(msg)
+                raise ImageProcessingError(
+                    msg,
+                    context={
+                        "score": score,
+                        "min_matches": min_matches,
+                        "good_matches": len(good_matches),
+                    },
+                )
 
         logger.info(
             f"AutoRotate Applied with rotation {best_rotation} and value {best_val}"

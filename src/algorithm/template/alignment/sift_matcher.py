@@ -6,6 +6,7 @@ from src.algorithm.template.alignment.piecewise_affine_delaunay import (
     apply_piecewise_affine,
 )
 from src.algorithm.template.alignment.utils import show_displacement_overlay
+from src.exceptions import ImageProcessingError
 from src.utils.interaction import InteractionUtils
 from src.utils.logger import logger
 from src.utils.math import MathUtils
@@ -190,8 +191,14 @@ def apply_sift_shifts(
         config,
     )
     if warped_block_image.shape != block_gray_image.shape:
-        msg = f"Warped block image shape {warped_block_image.shape} does not match the original block image shape {block_gray_image.shape}"
-        raise Exception(msg)
+        error_msg = f"Warped block image shape {warped_block_image.shape} does not match the original block image shape {block_gray_image.shape}"
+        raise ImageProcessingError(
+            error_msg,
+            context={
+                "warped_shape": warped_block_image.shape,
+                "original_shape": block_gray_image.shape,
+            },
+        )
 
     show_displacement_overlay(
         block_gray_alignment_image, block_gray_image, warped_block_image

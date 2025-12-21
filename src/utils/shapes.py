@@ -1,3 +1,4 @@
+from src.exceptions import TemplateValidationError
 from src.utils.logger import logger
 from src.utils.math import MathUtils
 
@@ -41,7 +42,14 @@ class ShapeUtils:
 
         if zone_start[0] < 0 or zone_start[1] < 0 or zone_end[0] > w or zone_end[1] > h:
             msg = f"Zone '{zone_label}' with scan rectangle: {[zone_start, zone_end]} overflows the image boundary {[w, h]}."
-            raise Exception(msg)
+            raise TemplateValidationError(
+                msg,
+                context={
+                    "zone_label": zone_label,
+                    "zone_rectangle": [zone_start, zone_end],
+                    "image_dimensions": [w, h],
+                },
+            )
 
         # Extract image zone
         return ShapeUtils.extract_image_from_zone_rectangle(

@@ -16,6 +16,8 @@ from shapely.geometry import (
 )
 from shapely.ops import linemerge, nearest_points, snap, split
 
+from src.exceptions import ImageProcessingError
+
 
 def create_identity_meshgrid(
     # ruff: noqa: FBT001
@@ -135,7 +137,10 @@ def _create_backward_map(
 
         if len(intersections) != 2:
             msg = "Unexpected number of intersections!"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={"intersections_count": len(intersections)},
+            )
 
         # stretching 'x' intersections to the resolution grid size
         stretched_x_line = np.linspace(
@@ -160,7 +165,10 @@ def _create_backward_map(
 
             if len(intersections) != 2:
                 msg = "Unexpected number of intersections!"
-                raise Exception(msg)
+                raise ImageProcessingError(
+                    msg,
+                    context={"intersections_count": len(intersections)},
+                )
 
         # stretching 'y' intersections to the resolution grid size
         stretched_y_line = np.linspace(
@@ -187,7 +195,10 @@ def _snap_corners(polygon: Polygon, corners: list[Point]) -> list[Point]:
     corners = [nearest_points(polygon, point)[0] for point in corners]
     if len(corners) != 4:
         msg = "Unexpected number of corners!"
-        raise Exception(msg)
+        raise ImageProcessingError(
+            msg,
+            context={"corners_count": len(corners)},
+        )
     return corners
 
 
@@ -196,7 +207,10 @@ def _split_polygon(polygon: Polygon, corners: list[Point]) -> list[LineString]:
     segments = split(boundary, MultiPoint(corners)).geoms
     if len(segments) not in {4, 5}:
         msg = "Unexpected number of segments!"
-        raise Exception(msg)
+        raise ImageProcessingError(
+            msg,
+            context={"segments_count": len(segments)},
+        )
 
     if len(segments) == 4:
         return segments  # pyright: ignore [reportReturnType]
@@ -226,13 +240,19 @@ def _classify_segments(
     data_frame["name"] = name_y + "-" + name_x
     if len(data_frame.name.unique()) != 4:
         msg = "Unexpected number of unique names!"
-        raise Exception(msg)
+        raise ImageProcessingError(
+            msg,
+            context={"unique_names_count": len(data_frame.name.unique())},
+        )
 
     # find bbox node to corner node association
     approx_points = np.array([c.xy for c in corners]).squeeze()
     if approx_points.shape != (4, 2):
         msg = "Unexpected number of points!"
-        raise Exception(msg)
+        raise ImageProcessingError(
+            msg,
+            context={"points_shape": approx_points.shape},
+        )
 
     assignments = [
         np.roll(np.array(range(4))[::step], shift=i)

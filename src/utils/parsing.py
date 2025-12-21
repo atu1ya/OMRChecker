@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from deepmerge import Merger
 
+from src.exceptions import OMRCheckerError
 from src.schemas.constants import FIELD_STRING_REGEX_GROUPS
 from src.schemas.defaults import CONFIG_DEFAULTS, TEMPLATE_DEFAULTS
 from src.schemas.defaults.evaluation import EVALUATION_CONFIG_DEFAULTS
@@ -103,7 +104,14 @@ def parse_fields(key: str, fields: list[str]) -> list[str]:
         current_set = set(fields_array)
         if not fields_set.isdisjoint(current_set):
             msg = f"Given field string '{field_string}' has overlapping field(s) with other fields in '{key}': {fields}"
-            raise Exception(msg)
+            raise OMRCheckerError(
+                msg,
+                context={
+                    "field_string": field_string,
+                    "key": key,
+                    "overlapping_fields": list(fields_set.intersection(current_set)),
+                },
+            )
         fields_set.update(current_set)
         parsed_fields.extend(fields_array)
     return parsed_fields
@@ -117,7 +125,14 @@ def parse_field_string(field_string) -> list[str]:
         start, end = int(start), int(end)
         if start >= end:
             msg = f"Invalid range in fields string: '{field_string}', start: {start} is not less than end: {end}"
-            raise Exception(msg)
+            raise OMRCheckerError(
+                msg,
+                context={
+                    "field_string": field_string,
+                    "start": start,
+                    "end": end,
+                },
+            )
         return [
             f"{field_prefix}{field_number}" for field_number in range(start, end + 1)
         ]

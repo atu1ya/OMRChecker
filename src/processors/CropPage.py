@@ -14,6 +14,7 @@ from src.constants import (
     THRESH_PAGE_TRUNCATE_SECONDARY,
     TOP_CONTOURS_COUNT,
 )
+from src.exceptions import ImageProcessingError
 from src.processors.constants import EDGE_TYPES_IN_ORDER, WarpMethod
 from src.processors.internal.WarpOnPointsCommon import WarpOnPointsCommon
 from src.utils.constants import CLR_WHITE, hsv_white_high, hsv_white_low
@@ -227,5 +228,8 @@ class CropPage(WarpOnPointsCommon):
                 f"Have you accidentally included CropPage preprocessor?\nIf no, increase the processing dimensions from config. Current image size used: {image.shape[:2]}"
             )
             msg = "Paper boundary not found"
-            raise Exception(msg)
+            raise ImageProcessingError(
+                msg,
+                context={"file_path": str(file_path), "image_shape": image.shape[:2]},
+            )
         return sheet, page_contour

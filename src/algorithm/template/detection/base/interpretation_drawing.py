@@ -17,5 +17,5 @@ class FieldInterpretationDrawing:
     def draw_field_interpretation(
         self, marked_image, image_type, evaluation_meta, evaluation_config_for_response
     ) -> Never:
-        msg = "Not implemented"
-        raise Exception(msg)
+        # Not implemented
+        raise NotImplementedError
