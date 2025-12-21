@@ -11,8 +11,9 @@ OMRChecker now supports parallel processing of images using multi-threading. Ima
 - Parallelization occurs **per folder**, not globally
 - Each folder's images are processed independently
 
-### 2. **Thread-Safe Operations**
-- **CSV Writing**: Thread-safe locks ensure no race conditions when writing results
+### 2. **Thread-Safe Operations & Result Ordering**
+- **CSV Writing**: Results are collected and sorted by input order before writing to CSV
+- **Ordered Output**: CSV rows maintain the same order as input files, regardless of processing completion order
 - **Stats Tracking**: Protected counters for accurate file statistics
 - **Logging**: Synchronized logging to prevent garbled output
 
@@ -74,34 +75,72 @@ def process_directory_files(...):
 #### After:
 ```python
 def process_single_file(file_info):
-    """Process a single OMR file with thread-safe operations"""
-    # Extract and process file
-    # Use locks for shared resources
-    ...
+    """Process a single OMR file and return results with CSV data"""
+    result = {
+        "file_counter": idx,
+        "csv_writes": []  # Store CSV writes for later
+    }
+    # Process file...
+    # Store CSV data instead of writing immediately
+    result["csv_writes"].append({"file": csv_file, "data": row_data})
+    return result
 
 def process_directory_files(...):
     """Process files in parallel using ThreadPoolExecutor"""
-    max_workers = config.outputs.max_parallel_workers
+    max_workers = config.processing.max_parallel_workers
 
     # Prepare file tasks
     file_tasks = [(file_path, idx, ...) for ...]
 
     # Process in parallel
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(process_single_file, task): task
-                   for task in file_tasks}
-        for future in as_completed(futures):
-            result = future.result()
+    if max_workers > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(process_single_file, task): task
+                       for task in file_tasks}
+
+            # Collect results as they complete
+            results = []
+            for future in as_completed(futures):
+                results.append(future.result())
+
+            # Sort by file_counter to maintain input order
+            results.sort(key=lambda r: r["file_counter"])
+
+            # Write CSV in correct order
+            for result in results:
+                for csv_write in result["csv_writes"]:
+                    thread_safe_csv_append(csv_write["file"], csv_write["data"])
+    else:
+        # Sequential processing
+        for task in file_tasks:
+            result = process_single_file(task)
+            # Write immediately in sequential mode
+            for csv_write in result["csv_writes"]:
+                thread_safe_csv_append(csv_write["file"], csv_write["data"])
 ```
 
-## Thread Safety
+## Thread Safety & Result Ordering
+
+### Result Collection & Ordering
+When using parallel processing, files complete in non-deterministic order (based on processing speed). To ensure CSV output maintains the same order as input files:
+
+1. **Deferred CSV Writes**: `process_single_file()` stores CSV data in the result dict instead of writing immediately
+2. **Result Collection**: All results are collected as threads complete
+3. **Sorting**: Results are sorted by `file_counter` (input order)
+4. **Sequential Writing**: CSV rows are written in sorted order
+
+This ensures that the output CSV always matches the input file order, making it easier to correlate results with inputs.
 
 ### Protected Resources
 
 1. **CSV File Writes**
    ```python
-   with CSV_WRITE_LOCK:
-       pd.DataFrame(...).to_csv(...)
+   # CSV writes are sorted before writing
+   results.sort(key=lambda r: r["file_counter"])
+   for result in results:
+       for csv_write in result["csv_writes"]:
+           with CSV_WRITE_LOCK:
+               pd.DataFrame(...).to_csv(...)
    ```
 
 2. **Statistics Counters**
@@ -188,6 +227,11 @@ diff -r outputs/seq outputs/par
 ### Issue: Garbled Log Output
 - **Cause**: Missing LOGGER_LOCK in custom code
 - **Fix**: Wrap logger calls in `with LOGGER_LOCK:`
+
+### Issue: CSV Rows in Wrong Order
+- **Cause**: Using `as_completed()` without sorting results
+- **Fix**: Collect all results, sort by `file_counter`, then write CSV rows
+- **Status**: ✅ Fixed - Results are now sorted before CSV writing
 
 ### Issue: Incorrect CSV Results
 - **Cause**: Missing CSV_WRITE_LOCK

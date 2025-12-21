@@ -240,7 +240,12 @@ def process_single_file(
         file_info: Tuple of (file_path, file_counter, template, tuning_config, evaluation_config, output_mode)
 
     Returns:
-        dict with processing results including status, errors, and metrics
+        dict with processing results including:
+            - file_path: Path to the file
+            - file_counter: Sequential number of file in batch
+            - status: "success" or "error"
+            - error: Error message if status is "error"
+            - csv_writes: List of CSV write operations to execute (for maintaining order)
     """
     (
         file_path,
@@ -257,6 +262,7 @@ def process_single_file(
         "status": "success",
         "error": None,
         "is_multi_marked": False,
+        "csv_writes": [],  # Store CSV write operations to execute later in order
     }
 
     try:
@@ -445,10 +451,12 @@ def process_single_file(
                 *omr_response_array,
             ]
 
-            # Write/Append to results_line file (thread-safe)
-            thread_safe_csv_append(
-                template.get_results_file(),
-                results_line,
+            # Store CSV write for later (to maintain order)
+            result["csv_writes"].append(
+                {
+                    "file": template.get_results_file(),
+                    "data": results_line,
+                }
             )
         else:
             # is_multi_marked file
@@ -466,9 +474,12 @@ def process_single_file(
                     "NA",
                     *omr_response_array,
                 ]
-                thread_safe_csv_append(
-                    template.get_multi_marked_file(),
-                    mm_line,
+                # Store CSV write for later (to maintain order)
+                result["csv_writes"].append(
+                    {
+                        "file": template.get_multi_marked_file(),
+                        "data": mm_line,
+                    }
                 )
 
     except Exception as e:
@@ -491,6 +502,10 @@ def process_directory_files(
 
     Files are processed concurrently using ThreadPoolExecutor, with thread-safe
     access to shared resources like CSV files and stats counters.
+
+    When parallel processing is enabled (max_workers > 1), results are collected
+    and sorted by input order before CSV writes, ensuring output CSV rows match
+    the input file order regardless of processing completion order.
     """
     start_time = int(time())
     files_counter = 0
@@ -532,26 +547,45 @@ def process_directory_files(
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             future_to_file = {
-                executor.submit(process_single_file, file_info): file_info[0]
+                executor.submit(process_single_file, file_info): file_info
                 for file_info in file_tasks
             }
 
-            # Collect results as they complete
+            # Collect results as they complete (order doesn't matter here)
+            results = []
             for future in as_completed(future_to_file):
                 try:
                     result = future.result()
+                    results.append(result)
                     if result["status"] == "error" and result["error"]:
                         logger.warning(
                             f"[{result['file_counter']}] Error in {result['file_path'].name}: {result['error']}"
                         )
                 except Exception as e:
-                    file_path = future_to_file[future]
-                    logger.error(f"Unexpected error processing {file_path}: {e}")
+                    file_info = future_to_file[future]
+                    logger.error(f"Unexpected error processing {file_info[0]}: {e}")
+
+            # Sort results by file_counter to maintain input order
+            results.sort(key=lambda r: r["file_counter"])
+
+            # Write CSV results in sorted order
+            for result in results:
+                for csv_write in result.get("csv_writes", []):
+                    thread_safe_csv_append(
+                        csv_write["file"],
+                        csv_write["data"],
+                    )
     else:
         # Sequential processing (when max_workers=1 or interactive mode)
         for file_info in file_tasks:
             try:
                 result = process_single_file(file_info)
+                # Write CSV immediately in sequential mode
+                for csv_write in result.get("csv_writes", []):
+                    thread_safe_csv_append(
+                        csv_write["file"],
+                        csv_write["data"],
+                    )
                 if result["status"] == "error" and result["error"]:
                     logger.warning(
                         f"[{result['file_counter']}] Error in {result['file_path'].name}: {result['error']}"
