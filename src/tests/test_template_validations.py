@@ -74,7 +74,7 @@ def test_overflow_labels(mocker) -> None:
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert (
         str(exception)
-        == "Overflowing field block 'MCQ_Block_1' with origin [65.0, 60.0] and dimensions [189.0, 5173.0] in template with dimensions [300, 400]"
+        == "Overflowing field block 'MCQ_Block_1' with origin [65.0, 60.0] and dimensions [189.0, 5173.0] in template with dimensions [300, 400] (block_name=MCQ_Block_1, bounding_box_origin=[65.0, 60.0], bounding_box_dimensions=[189.0, 5173.0], template_dimensions=[300, 400])"
     )
 
 
@@ -98,7 +98,7 @@ def test_field_strings_overlap(mocker) -> None:
 
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert str(exception) == (
-        "The field strings for field block New_Block overlap with other existing fields: {'q5'}"
+        "The field strings for field block New_Block overlap with other existing fields: {'q5'} (block_name=New_Block, field_labels=['q5'], overlap=['q5'])"
     )
 
 
@@ -111,7 +111,7 @@ def test_custom_label_strings_overlap_single(mocker) -> None:
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert (
         str(exception)
-        == "Given field string 'q2..3' has overlapping field(s) with other fields in 'Custom Label: label1': ['q1..2', 'q2..3']"
+        == "Given field string 'q2..3' has overlapping field(s) with other fields in 'Custom Label: label1': ['q1..2', 'q2..3'] (field_string=q2..3, key=Custom Label: label1, overlapping_fields=['q2'])"
     )
 
 
@@ -125,7 +125,7 @@ def test_custom_label_strings_overlap_multiple(mocker) -> None:
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert (
         str(exception)
-        == "The field strings for custom label 'label2' overlap with other existing custom labels"
+        == "The field strings for custom label 'label2' overlap with other existing custom labels (custom_label=label2, label_strings=['q2..3'])"
     )
 
 
@@ -136,7 +136,7 @@ def test_missing_field_block_labels(mocker) -> None:
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert (
         str(exception)
-        == "Missing field block label(s) in the given template for ['qX', 'qY'] from 'Combined'"
+        == "Missing field block label(s) in the given template for ['qX', 'qY'] from 'Combined' (custom_label=Combined, missing_labels=['qX', 'qY'])"
     )
 
 
@@ -149,7 +149,7 @@ def test_missing_output_columns(mocker) -> None:
 
     _, exception = write_jsons_and_run(mocker, modify_template=modify_template)
     assert str(exception) == (
-        "Some columns are missing in the field blocks for the given output columns"
+        "Some columns are missing in the field blocks for the given output columns (missing_output_columns=['qX'])"
     )
 
 
