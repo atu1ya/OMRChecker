@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 import jsonschema
 from jsonschema import validate
@@ -13,7 +14,7 @@ from src.schemas import SCHEMA_JSONS, SCHEMA_VALIDATORS
 from src.utils.logger import console, logger
 
 
-def validate_evaluation_json(json_data, evaluation_path) -> None:
+def validate_evaluation_json(json_data: dict, evaluation_path: Path) -> None:
     logger.info(f"Loading evaluation.json: {evaluation_path}")
     try:
         validate(instance=json_data, schema=SCHEMA_JSONS["evaluation"])
@@ -55,7 +56,7 @@ def validate_evaluation_json(json_data, evaluation_path) -> None:
         ) from None
 
 
-def validate_template_json(json_data, template_path) -> None:
+def validate_template_json(json_data: dict, template_path: Path) -> None:
     logger.info(f"Loading template.json: {template_path}")
     try:
         validate(instance=json_data, schema=SCHEMA_JSONS["template"])
@@ -91,7 +92,7 @@ def validate_template_json(json_data, template_path) -> None:
         raise TemplateValidationError(template_path, errors=error_messages) from None
 
 
-def validate_config_json(json_data, config_path) -> None:
+def validate_config_json(json_data: dict, config_path: Path) -> None:
     logger.info(f"Loading config.json: {config_path}")
     try:
         validate(instance=json_data, schema=SCHEMA_JSONS["config"])
@@ -135,7 +136,9 @@ def validate_config_json(json_data, config_path) -> None:
         raise ConfigValidationError(config_path, errors=error_messages) from None
 
 
-def parse_validation_error(error) -> tuple[str, str, str]:
+def parse_validation_error(
+    error: jsonschema.exceptions.ValidationError,
+) -> tuple[str, str, str]:
     return (
         (error.path[0] if len(error.path) > 0 else "$root"),
         error.validator,

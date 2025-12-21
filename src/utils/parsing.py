@@ -1,6 +1,7 @@
 import re
 from copy import deepcopy
 from fractions import Fraction
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -33,7 +34,7 @@ OVERRIDE_MERGER = Merger(
 )
 
 
-def open_config_with_defaults(config_path, args) -> dict[str, Any]:
+def open_config_with_defaults(config_path: Path, args: dict[str, Any]) -> DotMap:
     output_mode = args["outputMode"]
     debug_mode = args["debug"]
     user_tuning_config = load_json(config_path)
@@ -67,14 +68,14 @@ def open_config_with_defaults(config_path, args) -> dict[str, Any]:
     return DotMap(user_tuning_config, _dynamic=False)
 
 
-def open_template_with_defaults(template_path) -> dict[str, Any]:
+def open_template_with_defaults(template_path: Path) -> dict[str, Any]:
     user_template = load_json(template_path)
     user_template = OVERRIDE_MERGER.merge(deepcopy(TEMPLATE_DEFAULTS), user_template)
     validate_template_json(user_template, template_path)
     return user_template
 
 
-def open_evaluation_with_defaults(evaluation_path) -> dict[str, Any]:
+def open_evaluation_with_defaults(evaluation_path: Path) -> dict[str, Any]:
     user_evaluation_config = load_json(evaluation_path)
     user_evaluation_config = OVERRIDE_MERGER.merge(
         deepcopy(EVALUATION_CONFIG_DEFAULTS), user_evaluation_config
@@ -83,7 +84,7 @@ def open_evaluation_with_defaults(evaluation_path) -> dict[str, Any]:
     return user_evaluation_config
 
 
-def parse_fields(key, fields):
+def parse_fields(key: str, fields: list[str]) -> list[str]:
     parsed_fields = []
     fields_set = set()
     for field_string in fields:
@@ -112,12 +113,12 @@ def parse_field_string(field_string) -> list[str]:
     return [field_string]
 
 
-def alphanumerical_sort_key(field_label):
+def alphanumerical_sort_key(field_label: str) -> list[str | int]:
     label_prefix, label_suffix = re.findall(FIELD_LABEL_NUMBER_REGEX, field_label)[0]
     return [label_prefix, int(label_suffix) if len(label_suffix) > 0 else 0, 0]
 
 
-def parse_float_or_fraction(result) -> float:
+def parse_float_or_fraction(result: str | float) -> float:
     if isinstance(result, str) and "/" in result:
         result = float(Fraction(result))
     else:
@@ -125,7 +126,7 @@ def parse_float_or_fraction(result) -> float:
     return result
 
 
-def default_dump(obj) -> bool | dict[str, Any] | str:
+def default_dump(obj: object) -> bool | dict[str, Any] | str:
     return (
         bool(obj)
         if isinstance(obj, np.bool_)
@@ -139,7 +140,7 @@ def default_dump(obj) -> bool | dict[str, Any] | str:
     )
 
 
-def table_to_df(table) -> pd.DataFrame:
+def table_to_df(table: object) -> pd.DataFrame:
     # ruff: noqa: SLF001
     data = {col.header: col._cells for col in table.columns}
     return pd.DataFrame(data)
