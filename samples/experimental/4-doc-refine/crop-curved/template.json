@@ -35,7 +35,7 @@
     }
   ],
   "customBubbleFieldTypes": {
-    "QTYPE_MCQ4_VERTICAL": {
+    "CUSTOM_QTYPE_MCQ4_VERTICAL": {
       "bubbleValues": [
         "A",
         "B",
@@ -57,7 +57,7 @@
         "bookletNo"
       ],
       "fieldDetectionType": "BUBBLES_THRESHOLD",
-      "bubbleFieldType": "QTYPE_MCQ4_VERTICAL"
+      "bubbleFieldType": "CUSTOM_QTYPE_MCQ4_VERTICAL"
     },
     "subjectCode": {
       "origin": [

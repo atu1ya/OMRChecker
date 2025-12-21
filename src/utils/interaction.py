@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from threading import Lock
 
 import cv2
 from matplotlib import pyplot as plt
@@ -192,8 +193,20 @@ class InteractionUtils:
 
 class Stats:
     # TODO: Fill these for stats: multiMarkedFilesCount = 0,  errorFilesCount = 0
-    files_moved = 0
-    files_not_moved = 0
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self.files_moved = 0
+        self.files_not_moved = 0
+
+    def increment_files_not_moved(self) -> None:
+        """Thread-safe method to increment files_not_moved counter."""
+        with self._lock:
+            self.files_not_moved += 1
+
+    def increment_files_moved(self) -> None:
+        """Thread-safe method to increment files_moved counter."""
+        with self._lock:
+            self.files_moved += 1
 
 
 def close_all_on_wait_key(key="q") -> None:

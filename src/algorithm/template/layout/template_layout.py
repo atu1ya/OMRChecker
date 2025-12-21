@@ -215,7 +215,7 @@ class TemplateLayout:
                     logger.critical(
                         f"Cannot find definition for {bubble_field_type} in customBubbleFieldTypes"
                     )
-                    msg = f"Invalid bubble field type: {bubble_field_type} in block {block_name}"
+                    msg = f"Invalid bubble field type: {bubble_field_type} in block {block_name}. Have you defined customBubbleFieldTypes?"
                     raise Exception(msg)
             field_labels = field_block_object["fieldLabels"]
             if len(field_labels) > 1 and "labelsGap" not in field_block_object:

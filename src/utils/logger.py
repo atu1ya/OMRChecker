@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from threading import Lock
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -48,6 +49,7 @@ class Logger:
         self.log.setLevel(logging.DEBUG)
         self.log.__format__ = message_format
         self.log.__date_format__ = date_format
+        self._lock = Lock()
         self.reset_log_levels()
 
     def set_log_levels(self, show_logs_by_type) -> None:
@@ -81,7 +83,8 @@ class Logger:
         if not logger_func:
             msg = f"Logger has no method {method_type}"
             raise AttributeError(msg)
-        return logger_func(sep.join(msg), stacklevel=4)
+        with self._lock:
+            return logger_func(sep.join(msg), stacklevel=4)
 
 
 logger = Logger(__name__)

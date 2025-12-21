@@ -1,8 +1,7 @@
-from csv import QUOTE_NONNUMERIC
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path, PurePosixPath
 from time import time
 
-import pandas as pd
 from dotmap import DotMap
 from rich.table import Table
 
@@ -13,6 +12,7 @@ from src.algorithm.template.template import Template
 from src.schemas.constants import DEFAULT_ANSWERS_SUMMARY_FORMAT_STRING
 from src.schemas.defaults import CONFIG_DEFAULTS
 from src.utils import constants
+from src.utils.csv import thread_safe_csv_append
 from src.utils.file import PathUtils
 from src.utils.image import ImageUtils
 from src.utils.interaction import InteractionUtils, Stats
@@ -227,27 +227,45 @@ def show_template_in_set_layout_mode(omr_files, template, tuning_config) -> None
 
 # Non-recursive function that processes a single directory
 # TODO: move into template.directory_handler/directory_runner
-def process_directory_files(
+# Non-recursive function that processes a single directory
+# TODO: move into template.directory_handler/directory_runner
+def process_single_file(
     # ruff: noqa: PLR0912, C901, PLR0915
-    omr_files,
-    template: Template,
-    tuning_config,
-    evaluation_config,
-    output_mode,
-) -> None:
-    start_time = int(time())
-    files_counter = 0
-    # TODO: move STATS inside template.directory_handler
-    STATS.files_not_moved = 0
-    for file_path in omr_files:
-        files_counter += 1
+    file_info: tuple,
+) -> dict:
+    """Process a single OMR file and return results.
+
+    Args:
+        file_info: Tuple of (file_path, file_counter, template, tuning_config, evaluation_config, output_mode)
+
+    Returns:
+        dict with processing results including status, errors, and metrics
+    """
+    (
+        file_path,
+        file_counter,
+        template,
+        tuning_config,
+        evaluation_config,
+        output_mode,
+    ) = file_info
+
+    result = {
+        "file_path": file_path,
+        "file_counter": file_counter,
+        "status": "success",
+        "error": None,
+        "is_multi_marked": False,
+    }
+
+    try:
         file_name = PathUtils.remove_non_utf_characters(file_path.name)
         file_id = str(file_name)
         gray_image, colored_image = ImageUtils.read_image_util(file_path, tuning_config)
 
         logger.info("")
         logger.info(
-            f"({files_counter}) Opening image: \t'{file_path}'\tResolution: {gray_image.shape}"
+            f"({file_counter}) Opening image: \t'{file_path}'\tResolution: {gray_image.shape}"
         )
 
         # Start with blank saved images list
@@ -256,8 +274,6 @@ def process_directory_files(
         template.save_image_ops.append_save_image(
             "Input Image", range(1, 7), gray_image, colored_image
         )
-
-        # TODO: use try catch here and store paths to error files
 
         # Note: the returned template is a copy
         (
@@ -289,14 +305,13 @@ def process_directory_files(
                     *template.get_empty_response_array(),
                 ]
 
-                pd.DataFrame(error_file_line, dtype=str).T.to_csv(
+                thread_safe_csv_append(
                     template.get_errors_file(),
-                    mode="a",
-                    quoting=QUOTE_NONNUMERIC,
-                    header=False,
-                    index=False,
+                    error_file_line,
                 )
-            continue
+            result["status"] = "error"
+            result["error"] = "NO_MARKER_ERR"
+            return result
 
         concatenated_omr_response, raw_omr_response = template.read_omr_response(
             gray_image, colored_image, file_path
@@ -307,6 +322,8 @@ def process_directory_files(
             is_multi_marked,
             field_id_to_interpretation,
         ) = template.get_omr_metrics_for_file(str(file_path))
+
+        result["is_multi_marked"] = is_multi_marked
 
         evaluation_config_for_response = (
             None
@@ -331,14 +348,14 @@ def process_directory_files(
                 DEFAULT_ANSWERS_SUMMARY_FORMAT_STRING
             )
             logger.info(
-                f"(/{files_counter}) Graded with score: {round(score, 2)}\t {default_answers_summary} \t file: '{file_id}'"
+                f"(/{file_counter}) Graded with score: {round(score, 2)}\t {default_answers_summary} \t file: '{file_id}'"
             )
             evaluation_config_for_response.conditionally_export_explanation_csv(
                 file_path
             )
         else:
             logger.info(f"Read Response: \n{concatenated_omr_response}")
-            logger.info(f"(/{files_counter}) Processed file: '{file_id}'")
+            logger.info(f"(/{file_counter}) Processed file: '{file_id}'")
 
         # TODO: move this logic inside the class
         save_marked_dir = template.get_save_marked_dir()
@@ -366,16 +383,12 @@ def process_directory_files(
         )
 
         if should_save_detections:
-            # TODO: migrate after support for is_multi_marked bucket based on identifier config
-            # if multi_roll:
-            #     save_marked_dir = save_marked_dir.joinpath("_MULTI_")
             ImageUtils.save_marked_image(save_marked_dir, file_id, final_marked)
 
             if (
                 tuning_config.outputs.colored_outputs_enabled
                 and save_marked_dir is not None
             ):
-                # TODO: get dedicated path from top args
                 colored_save_marked_dir = save_marked_dir.joinpath("colored")
                 ImageUtils.save_marked_image(
                     colored_save_marked_dir, file_id, colored_final_marked
@@ -414,13 +427,13 @@ def process_directory_files(
             not is_multi_marked
             or not tuning_config.outputs.filter_out_multimarked_files
         ):
-            STATS.files_not_moved += 1
+            STATS.increment_files_not_moved()
 
             # Normalize path and convert to posix style
             output_file_path = PathUtils.sep_based_posix_path(
                 save_marked_dir.joinpath(file_id)
             )
-            # Enter into Results sheet-
+            # Enter into Results sheet
             results_line = [
                 file_name,
                 posix_file_path,
@@ -429,17 +442,14 @@ def process_directory_files(
                 *omr_response_array,
             ]
 
-            # Write/Append to results_line file(opened in append mode)
-            pd.DataFrame(results_line, dtype=str).T.to_csv(
+            # Write/Append to results_line file (thread-safe)
+            thread_safe_csv_append(
                 template.get_results_file(),
-                mode="a",
-                quoting=QUOTE_NONNUMERIC,
-                header=False,
-                index=False,
+                results_line,
             )
         else:
             # is_multi_marked file
-            logger.info(f"[{files_counter}] Found multi-marked file: '{file_id}'")
+            logger.info(f"[{file_counter}] Found multi-marked file: '{file_id}'")
             output_file_path = PathUtils.sep_based_posix_path(
                 template.get_multi_marked_dir().joinpath(file_name)
             )
@@ -453,16 +463,98 @@ def process_directory_files(
                     "NA",
                     *omr_response_array,
                 ]
-                pd.DataFrame(mm_line, dtype=str).T.to_csv(
+                thread_safe_csv_append(
                     template.get_multi_marked_file(),
-                    mode="a",
-                    quoting=QUOTE_NONNUMERIC,
-                    header=False,
-                    index=False,
+                    mm_line,
                 )
-            # else:
-            #     TODO:  Add appropriate record handling here
-            #     pass
+
+    except Exception as e:
+        result["status"] = "error"
+        result["error"] = str(e)
+        logger.error(f"Error processing {file_path}: {e}")
+
+    return result
+
+
+def process_directory_files(
+    # ruff: noqa: PLR0912, C901, PLR0915
+    omr_files,
+    template: Template,
+    tuning_config,
+    evaluation_config,
+    output_mode,
+) -> None:
+    """Process all OMR files in a directory using parallel threading.
+
+    Files are processed concurrently using ThreadPoolExecutor, with thread-safe
+    access to shared resources like CSV files and stats counters.
+    """
+    start_time = int(time())
+    files_counter = 0
+
+    # Get max workers from config, default to 4 threads
+    max_workers = tuning_config.processing.get("max_parallel_workers", 4)
+
+    # Disable parallel processing if show_image_level > 0 (interactive mode)
+    if tuning_config.outputs.show_image_level > 0:
+        max_workers = 1
+        logger.info(
+            "Parallel processing disabled due to interactive image display mode"
+        )
+
+    # TODO: move STATS inside template.directory_handler
+    STATS.files_not_moved = 0
+
+    # Prepare file info tuples for parallel processing
+    file_tasks = []
+    for idx, file_path in enumerate(omr_files, start=1):
+        files_counter = idx
+        file_tasks.append(
+            (
+                file_path,
+                idx,
+                template,
+                tuning_config,
+                evaluation_config,
+                output_mode,
+            )
+        )
+
+    logger.info(
+        f"\nProcessing {len(omr_files)} files with {max_workers} worker thread(s)..."
+    )
+
+    # Process files in parallel
+    if max_workers > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_file = {
+                executor.submit(process_single_file, file_info): file_info[0]
+                for file_info in file_tasks
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_file):
+                try:
+                    result = future.result()
+                    if result["status"] == "error" and result["error"]:
+                        logger.warning(
+                            f"[{result['file_counter']}] Error in {result['file_path'].name}: {result['error']}"
+                        )
+                except Exception as e:
+                    file_path = future_to_file[future]
+                    logger.error(f"Unexpected error processing {file_path}: {e}")
+    else:
+        # Sequential processing (when max_workers=1 or interactive mode)
+        for file_info in file_tasks:
+            try:
+                result = process_single_file(file_info)
+                if result["status"] == "error" and result["error"]:
+                    logger.warning(
+                        f"[{result['file_counter']}] Error in {result['file_path'].name}: {result['error']}"
+                    )
+            except Exception as e:
+                logger.error(f"Unexpected error processing {file_info[0]}: {e}")
 
     logger.reset_log_levels()
 
@@ -476,7 +568,7 @@ def process_directory_files(
 def check_and_move(_error_code, _file_path, _filepath2) -> bool:
     # TODO: use StatsByLabel class here
     # TODO: fix file movement into error/multimarked/invalid etc again
-    STATS.files_not_moved += 1
+    STATS.increment_files_not_moved()
     return True
 
 

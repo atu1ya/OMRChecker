@@ -102,6 +102,18 @@ def validate_config_json(json_data, config_path) -> None:
                     f"{key}.{required_property}",
                     f"{msg}. Check for spelling errors and make sure it is in camelCase",
                 )
+            elif (
+                validator == "const"
+                and len(error.path) >= 2
+                and error.path[-2] == "processing"
+                and error.path[-1] == "max_parallel_workers"
+                and json_data.get("outputs", {}).get("show_image_level", 0) > 0
+            ):
+                # Custom message for show_image_level > 0 with max_parallel_workers > 1
+                table.add_row(
+                    "processing.max_parallel_workers",
+                    "When show_image_level > 0 (interactive mode), max_parallel_workers must be 1. Parallel processing is not compatible with interactive image display.",
+                )
             else:
                 table.add_row(key, msg)
         console.print(table, justify="center")

@@ -114,6 +114,17 @@
       "booklet1..7"
     ]
   },
+  "customBubbleFieldTypes": {
+    "CUSTOM_LANGUAGE_CODE": {
+      "bubbleValues": [
+        "M",
+        "N",
+        "O",
+        "P"
+      ],
+      "direction": "vertical"
+    }
+  },
   "fieldBlocks": {
     "Roll_No": {
       "fieldDetectionType": "BUBBLES_THRESHOLD",

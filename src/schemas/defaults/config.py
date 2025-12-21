@@ -40,6 +40,9 @@ CONFIG_DEFAULTS = DotMap(
             "show_confidence_metrics": False,
             "filter_out_multimarked_files": False,
         },
+        "processing": {
+            "max_parallel_workers": 4,  # Number of worker threads for parallel processing (1 = sequential)
+        },
     },
     _dynamic=False,
 )
