@@ -3,6 +3,17 @@ from typing import ClassVar
 import cv2
 import numpy as np
 
+from src.constants import (
+    APPROX_POLY_EPSILON_FACTOR,
+    CANNY_THRESHOLD_HIGH,
+    CANNY_THRESHOLD_LOW,
+    CONTOUR_THICKNESS_STANDARD,
+    MIN_PAGE_AREA,
+    PIXEL_VALUE_MAX,
+    THRESH_PAGE_TRUNCATE_HIGH,
+    THRESH_PAGE_TRUNCATE_SECONDARY,
+    TOP_CONTOURS_COUNT,
+)
 from src.processors.constants import EDGE_TYPES_IN_ORDER, WarpMethod
 from src.processors.internal.WarpOnPointsCommon import WarpOnPointsCommon
 from src.utils.constants import CLR_WHITE, hsv_white_high, hsv_white_low
@@ -11,8 +22,6 @@ from src.utils.image import ImageUtils
 from src.utils.interaction import InteractionUtils
 from src.utils.logger import logger
 from src.utils.math import MathUtils
-
-MIN_PAGE_AREA = 8000
 
 """
 ref: https://www.pyimagesearch.com/2015/04/06/zero-parameter-automatic-canny-edge-detection-with-python-and-opencv/
@@ -115,7 +124,9 @@ class CropPage(WarpOnPointsCommon):
                 "Cannot process colored image for CropPage. useColoredCanny is true but colored_outputs_enabled is false."
             )
 
-        _ret, image = cv2.threshold(image, 210, 255, cv2.THRESH_TRUNC)
+        _ret, image = cv2.threshold(
+            image, THRESH_PAGE_TRUNCATE_HIGH, PIXEL_VALUE_MAX, cv2.THRESH_TRUNC
+        )
         image = ImageUtils.normalize(image)
 
         self.append_save_image("Truncate Threshold", [1, 4, 5, 6], image)
@@ -134,9 +145,13 @@ class CropPage(WarpOnPointsCommon):
 
             # TODO: self.append_save_image(2, mask_result)
 
-            canny_edge = cv2.Canny(mask_result, 185, 55)
+            canny_edge = cv2.Canny(
+                mask_result, CANNY_THRESHOLD_HIGH, CANNY_THRESHOLD_LOW
+            )
         else:
-            _ret, image = cv2.threshold(image, 200, 255, cv2.THRESH_TRUNC)
+            _ret, image = cv2.threshold(
+                image, THRESH_PAGE_TRUNCATE_SECONDARY, PIXEL_VALUE_MAX, cv2.THRESH_TRUNC
+            )
 
             image = ImageUtils.normalize(image)
 
@@ -150,7 +165,7 @@ class CropPage(WarpOnPointsCommon):
             # TODO: self.append_save_image(2, closed)
 
             # TODO: parametrize these tuning params
-            canny_edge = cv2.Canny(closed, 185, 55)
+            canny_edge = cv2.Canny(closed, CANNY_THRESHOLD_HIGH, CANNY_THRESHOLD_LOW)
 
         self.append_save_image("Canny Edges", range(5, 7), canny_edge)
 
@@ -164,7 +179,9 @@ class CropPage(WarpOnPointsCommon):
         all_contours = [
             cv2.convexHull(bounding_contour) for bounding_contour in all_contours
         ]
-        all_contours = sorted(all_contours, key=cv2.contourArea, reverse=True)[:5]
+        all_contours = sorted(all_contours, key=cv2.contourArea, reverse=True)[
+            :TOP_CONTOURS_COUNT
+        ]
         sheet = []
         page_contour = None
         for bounding_contour in all_contours:
@@ -176,16 +193,22 @@ class CropPage(WarpOnPointsCommon):
                 True,
             )
             approx = cv2.approxPolyDP(
-                bounding_contour, epsilon=0.025 * peri, closed=True
+                bounding_contour, epsilon=APPROX_POLY_EPSILON_FACTOR * peri, closed=True
             )
             if MathUtils.validate_rect(approx):
                 sheet = np.reshape(approx, (4, -1))
                 page_contour = np.vstack(bounding_contour).squeeze()
                 DrawingUtils.draw_contour(
-                    canny_edge, approx, color=CLR_WHITE, thickness=10
+                    canny_edge,
+                    approx,
+                    color=CLR_WHITE,
+                    thickness=CONTOUR_THICKNESS_STANDARD,
                 )
                 DrawingUtils.draw_contour(
-                    self.debug_image, approx, color=CLR_WHITE, thickness=10
+                    self.debug_image,
+                    approx,
+                    color=CLR_WHITE,
+                    thickness=CONTOUR_THICKNESS_STANDARD,
                 )
 
                 self.append_save_image("Bounding Contour", range(1, 7), canny_edge)

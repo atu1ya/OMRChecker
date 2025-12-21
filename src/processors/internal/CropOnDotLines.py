@@ -3,6 +3,9 @@ from typing import ClassVar
 import cv2
 import numpy as np
 
+from src.constants import (
+    PIXEL_VALUE_MAX,
+)
 from src.processors.constants import (
     DOT_ZONE_TYPES_IN_ORDER,
     EDGE_TYPES_IN_ORDER,
@@ -425,7 +428,7 @@ class CropOnDotLines(CropOnPatchesCommon):
 
         if config.outputs.show_image_level >= 5:
             h, w = canny_edges.shape[:2]
-            contour_overlay = 255 * np.ones((h, w), np.uint8)
+            contour_overlay = PIXEL_VALUE_MAX * np.ones((h, w), np.uint8)
             DrawingUtils.draw_contour(contour_overlay, largest_contour)
             self.debug_hstack.append(contour_overlay)
 
