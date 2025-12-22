@@ -63,6 +63,7 @@ class BubblesFieldInterpretation(FieldInterpretation):
         """Get final interpretation string.
 
         Returns concatenated marked bubble values or empty value.
+        Special case: If ALL bubbles are marked, treat as unmarked (likely scanning issue).
         """
         marked_bubbles = [
             interp.bubble_value
@@ -70,7 +71,13 @@ class BubblesFieldInterpretation(FieldInterpretation):
             if interp.is_attempted
         ]
 
+        # If no bubbles marked, return empty value
         if len(marked_bubbles) == 0:
+            return self.empty_value
+
+        # If ALL bubbles are marked, treat as unmarked (likely scanning/detection issue)
+        total_bubbles = len(self.bubble_interpretations)
+        if len(marked_bubbles) == total_bubbles:
             return self.empty_value
 
         return "".join(marked_bubbles)
