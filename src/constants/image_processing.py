@@ -39,7 +39,7 @@ AUTO_CANNY_SIGMA_DEFAULT = 0.33  # Default sigma for automatic Canny
 # ============================================================================
 
 # Minimum areas
-MIN_PAGE_AREA = 8000  # Minimum area for valid page contour
+MIN_PAGE_AREA = 80000  # Minimum area for valid page contour
 MIN_MARKER_AREA = 100  # Minimum area for marker detection
 
 # Approximation and simplification

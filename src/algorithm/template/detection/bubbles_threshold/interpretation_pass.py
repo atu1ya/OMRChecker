@@ -5,6 +5,10 @@ from src.algorithm.template.detection.bubbles_threshold.interpretation import (
     BubblesFieldInterpretation,
 )
 from src.algorithm.template.layout.field.base import Field
+from src.algorithm.template.threshold.strategies import (
+    GlobalThresholdStrategy,
+    ThresholdConfig,
+)
 from src.utils.logger import logger
 from src.utils.stats import NumberAggregate
 
@@ -49,14 +53,14 @@ class BubblesThresholdInterpretationPass(FieldTypeInterpretationPass):
             "all_field_bubble_means_std"
         ]
         outlier_deviation_threshold_for_file = self.get_outlier_deviation_threshold(
-            file_path, all_outlier_deviations
+            all_outlier_deviations
         )
 
         field_wise_means_and_refs = own_file_level_detection_aggregates[
             "all_field_bubble_means"
         ]
         file_level_fallback_threshold, global_max_jump = self.get_fallback_threshold(
-            file_path, field_wise_means_and_refs
+            field_wise_means_and_refs
         )
 
         logger.debug(
@@ -88,53 +92,51 @@ class BubblesThresholdInterpretationPass(FieldTypeInterpretationPass):
             }
         )
 
-    def get_outlier_deviation_threshold(self, file_path, all_outlier_deviations):
+    def get_outlier_deviation_threshold(
+        self,
+        all_outlier_deviations,
+    ):
         config = self.tuning_config
         # ruff: noqa: N806
         MIN_JUMP_STD = config.thresholding.MIN_JUMP_STD
-        JUMP_DELTA_STD = config.thresholding.JUMP_DELTA_STD
         GLOBAL_PAGE_THRESHOLD_STD = config.thresholding.GLOBAL_PAGE_THRESHOLD_STD
-        (
-            outlier_deviation_threshold_for_file,
-            _,
-            _,
-        ) = BubblesFieldInterpretation.get_global_threshold(
-            all_outlier_deviations,
-            GLOBAL_PAGE_THRESHOLD_STD,
-            MIN_JUMP=MIN_JUMP_STD,
-            JUMP_DELTA=JUMP_DELTA_STD,
-            plot_title=f"Field-wise Std-dev Plot for {file_path}",
-            plot_show=config.outputs.show_image_level >= 6,
-            sort_in_plot=True,
-        )
-        return outlier_deviation_threshold_for_file
 
-    def get_fallback_threshold(self, file_path, field_wise_means_and_refs):
+        # Use GlobalThresholdStrategy instead of static method
+        strategy = GlobalThresholdStrategy()
+        threshold_config = ThresholdConfig(
+            min_jump=MIN_JUMP_STD,
+            default_threshold=GLOBAL_PAGE_THRESHOLD_STD,
+        )
+
+        # all_outlier_deviations is already a list of floats (std deviations)
+        result = strategy.calculate_threshold(all_outlier_deviations, threshold_config)
+        return result.threshold_value
+
+    def get_fallback_threshold(
+        self,
+        field_wise_means_and_refs,
+    ):
         config = self.tuning_config
         # ruff: noqa: N806
         GLOBAL_PAGE_THRESHOLD = config.thresholding.GLOBAL_PAGE_THRESHOLD
         MIN_JUMP = config.thresholding.MIN_JUMP
-        JUMP_DELTA = config.thresholding.JUMP_DELTA
 
-        # Note: Plotting takes Significant times here --> Change Plotting args
-        # to support show_image_level
-        (
-            file_level_fallback_threshold,
-            j_low,
-            j_high,
-        ) = BubblesFieldInterpretation.get_global_threshold(
-            field_wise_means_and_refs,  # , looseness=4
-            GLOBAL_PAGE_THRESHOLD,
-            plot_title=f"Mean Intensity Barplot: {file_path}",
-            MIN_JUMP=MIN_JUMP,
-            JUMP_DELTA=JUMP_DELTA,
-            plot_show=config.outputs.show_image_level >= 6,
-            sort_in_plot=True,
-            looseness=4,
+        # Use GlobalThresholdStrategy instead of static method
+        strategy = GlobalThresholdStrategy()
+        threshold_config = ThresholdConfig(
+            min_jump=MIN_JUMP,
+            default_threshold=GLOBAL_PAGE_THRESHOLD,
         )
-        global_max_jump = j_high - j_low
 
-        return file_level_fallback_threshold, global_max_jump
+        # field_wise_means_and_refs is a list of BubbleMeanValue objects
+        bubble_values = [item.mean_value for item in field_wise_means_and_refs]
+
+        result = strategy.calculate_threshold(bubble_values, threshold_config)
+
+        # Approximate global_max_jump from result
+        global_max_jump = result.max_jump
+
+        return result.threshold_value, global_max_jump
 
     def update_field_level_aggregates_on_processed_field_interpretation(
         self, field: Field, field_interpretation: BubblesFieldInterpretation

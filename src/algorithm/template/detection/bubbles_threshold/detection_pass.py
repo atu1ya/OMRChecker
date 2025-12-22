@@ -1,23 +1,40 @@
+"""Bubble detection pass using new typed models and repository.
+
+Refactored to use DetectionRepository instead of nested dictionaries.
+Much cleaner and shorter!
+"""
+
 from src.algorithm.template.detection.base.detection_pass import FieldTypeDetectionPass
 from src.algorithm.template.detection.bubbles_threshold.detection import (
     BubblesFieldDetection,
-    FieldStdMeanValue,
 )
 from src.algorithm.template.layout.field.base import Field
+from src.algorithm.template.repositories.detection_repository import (
+    DetectionRepository,
+)
 from src.utils.stats import NumberAggregate
 
 
 class BubblesThresholdDetectionPass(FieldTypeDetectionPass):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    """Detection pass for bubble fields using repository pattern.
 
-    # Note: This is used by parent to generate the detection
+    Stores results in DetectionRepository instead of nested dictionaries.
+    Much simpler!
+    """
+
+    def __init__(self, *args, repository: DetectionRepository = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # Use provided repository or keep legacy dict approach
+        self.repository = repository
+
     def get_field_detection(
         self, field: Field, gray_image, colored_image
     ) -> BubblesFieldDetection:
+        """Create field detection (called by parent)."""
         return BubblesFieldDetection(field, gray_image, colored_image)
 
     def initialize_directory_level_aggregates(self, initial_directory_path) -> None:
+        """Initialize directory-level aggregates."""
         super().initialize_directory_level_aggregates(initial_directory_path)
         self.insert_directory_level_aggregates(
             {
@@ -25,7 +42,12 @@ class BubblesThresholdDetectionPass(FieldTypeDetectionPass):
             }
         )
 
+        # Initialize repository if available
+        if self.repository:
+            self.repository.initialize_directory(initial_directory_path)
+
     def initialize_file_level_aggregates(self, file_path) -> None:
+        """Initialize file-level aggregates."""
         super().initialize_file_level_aggregates(file_path)
         self.insert_file_level_aggregates(
             {
@@ -35,22 +57,34 @@ class BubblesThresholdDetectionPass(FieldTypeDetectionPass):
             }
         )
 
+        # Initialize file in repository if available
+        if self.repository:
+            self.repository.initialize_file(file_path)
+
     def update_field_level_aggregates_on_processed_field_detection(
         self, field: Field, field_detection: BubblesFieldDetection
     ) -> None:
+        """Update field-level aggregates after detection."""
         super().update_field_level_aggregates_on_processed_field_detection(
             field, field_detection
         )
-        field_bubble_means = field_detection.field_bubble_means
-        # self.file_level_aggregates["fields_count"].push("processed")
 
-        field_bubble_means_std = FieldStdMeanValue(field_bubble_means, field)
+        # Save to repository if available (NEW WAY - much cleaner!)
+        if self.repository and hasattr(field_detection, "result"):
+            self.repository.save_bubble_field(field.id, field_detection.result)
+
+        # Legacy dict approach (BACKWARD COMPATIBILITY)
+        field_bubble_means = field_detection.field_bubble_means
+        std_deviation = (
+            field_detection.result.std_deviation
+            if hasattr(field_detection, "result")
+            else 0.0
+        )
 
         self.insert_field_level_aggregates(
             {
-                # Note: "field" key is injected from parent
                 "field_bubble_means": field_bubble_means,
-                "field_bubble_means_std": field_bubble_means_std,
+                "field_bubble_means_std": std_deviation,
             }
         )
 
@@ -60,10 +94,12 @@ class BubblesThresholdDetectionPass(FieldTypeDetectionPass):
         field_detection: BubblesFieldDetection,
         field_level_aggregates,
     ) -> None:
+        """Update file-level aggregates after field detection."""
         super().update_file_level_aggregates_on_processed_field_detection(
             field, field_detection, field_level_aggregates
         )
 
+        # Legacy dict approach (BACKWARD COMPATIBILITY)
         field_bubble_means = field_level_aggregates["field_bubble_means"]
         field_bubble_means_std = field_level_aggregates["field_bubble_means_std"]
 
@@ -71,7 +107,3 @@ class BubblesThresholdDetectionPass(FieldTypeDetectionPass):
         self.file_level_aggregates["all_field_bubble_means_std"].append(
             field_bubble_means_std
         )
-        # fields count++ for field_detection_type(self) and bubble_field_type
-        # self.file_level_aggregates["fields_count"].push(field.bubble_field_type)
-
-        # TODO: ...
