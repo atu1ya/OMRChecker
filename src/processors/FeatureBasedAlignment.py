@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.processors.interfaces.ImageTemplatePreprocessor import (
+from src.processors.image.base import (
     ImageTemplatePreprocessor,
 )
 from src.utils.image import ImageUtils

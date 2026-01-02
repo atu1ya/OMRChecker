@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 
 from src.exceptions import ImageProcessingError, ImageReadError
-from src.processors.interfaces.ImageTemplatePreprocessor import (
+from src.processors.image.base import (
     ImageTemplatePreprocessor,
 )
 from src.utils.image import ImageUtils

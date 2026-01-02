@@ -4,10 +4,7 @@ from pathlib import Path
 
 from cv2.typing import MatLike
 
-from src.algorithm.processor.alignment import AlignmentProcessor
-from src.algorithm.processor.base import ProcessingContext, Processor
-from src.algorithm.processor.image import PreprocessingProcessor
-from src.algorithm.processor.read_omr import ReadOMRProcessor
+from src.processors.base import ProcessingContext, Processor
 from src.utils.logger import logger
 
 
@@ -36,6 +33,16 @@ class ProcessingPipeline:
         """
         self.template = template
         self.tuning_config = template.tuning_config
+
+        # Lazy import processors to avoid circular dependencies
+        # These imports are intentionally not at top-level
+        from src.processors.alignment.processor import (  # noqa: PLC0415
+            AlignmentProcessor,
+        )
+        from src.processors.detection.processor import ReadOMRProcessor  # noqa: PLC0415
+        from src.processors.image.coordinator import (  # noqa: PLC0415
+            PreprocessingProcessor,
+        )
 
         # Initialize all processors with unified interface
         self.processors: list[Processor] = [

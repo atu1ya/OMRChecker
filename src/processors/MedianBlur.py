@@ -1,6 +1,6 @@
 import cv2
 
-from src.processors.interfaces.ImageTemplatePreprocessor import (
+from src.processors.image.base import (
     ImageTemplatePreprocessor,
 )
 

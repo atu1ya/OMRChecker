@@ -1,6 +1,6 @@
-"""Image processing for the unified processor architecture."""
+"""Image processing coordinator for the unified processor architecture."""
 
-from src.algorithm.processor.base import ProcessingContext, Processor
+from src.processors.base import ProcessingContext, Processor
 from src.utils.image import ImageUtils
 from src.utils.interaction import InteractionUtils
 from src.utils.logger import logger

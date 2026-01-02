@@ -1,6 +1,6 @@
 """ReadOMR Processor for OMR detection and interpretation."""
 
-from src.algorithm.processor.base import ProcessingContext, Processor
+from src.processors.base import ProcessingContext, Processor
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 

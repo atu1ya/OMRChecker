@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.processors.interfaces.ImageTemplatePreprocessor import (
+from src.processors.image.base import (
     ImageTemplatePreprocessor,
 )
 from src.processors.internal.CropOnCustomMarkers import CropOnCustomMarkers

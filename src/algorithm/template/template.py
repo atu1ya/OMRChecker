@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from src.algorithm.processor.pipeline import ProcessingPipeline
 from src.algorithm.template.detection.template_file_runner import TemplateFileRunner
 from src.algorithm.template.directory_handler import TemplateDirectoryHandler
 from src.algorithm.template.layout.template_drawing import TemplateDrawing
 from src.algorithm.template.layout.template_layout import TemplateLayout
+from src.processors import ProcessingPipeline
 from src.processors.constants import FieldDetectionType
 from src.utils.file import PathUtils, SaveImageOps
 from src.utils.image import ImageUtils

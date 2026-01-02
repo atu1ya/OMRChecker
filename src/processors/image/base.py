@@ -4,8 +4,8 @@ from typing import Any, Never
 
 from cv2.typing import MatLike
 
-from src.algorithm.processor.base import ProcessingContext
-from src.processors.internal.Processor import Processor
+from src.processors._legacy_processor import Processor
+from src.processors.base import ProcessingContext
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 

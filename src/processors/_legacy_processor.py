@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.algorithm.processor.base import Processor as BaseProcessor
+from src.processors.base import Processor as BaseProcessor
 
 
 class Processor(BaseProcessor):

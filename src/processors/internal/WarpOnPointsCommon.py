@@ -9,7 +9,7 @@ from scipy.interpolate import griddata
 from src.exceptions import ImageProcessingError, TemplateValidationError
 from src.processors.constants import WarpMethod, WarpMethodFlags
 from src.processors.helpers.rectify import rectify
-from src.processors.interfaces.ImageTemplatePreprocessor import (
+from src.processors.image.base import (
     ImageTemplatePreprocessor,
 )
 from src.utils.drawing import DrawingUtils

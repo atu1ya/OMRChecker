@@ -6,11 +6,15 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from src.algorithm.processor.alignment import AlignmentProcessor
-from src.algorithm.processor.base import ProcessingContext, Processor
-from src.algorithm.processor.pipeline import ProcessingPipeline
-from src.algorithm.processor.read_omr import ReadOMRProcessor
 from src.algorithm.template.template import Template
+from src.processors import (
+    AlignmentProcessor,
+    ImageTemplatePreprocessor,
+    ProcessingContext,
+    Processor,
+    ProcessingPipeline,
+    ReadOMRProcessor,
+)
 
 
 @pytest.fixture
@@ -102,7 +106,7 @@ class TestProcessingContext:
 class TestReadOMRProcessor:
     """Tests for ReadOMRProcessor."""
 
-    @patch("src.algorithm.processor.read_omr.ImageUtils")
+    @patch("src.processors.detection.processor.ImageUtils")
     def test_readomr_processor_flow(self, mock_image_utils, mock_template, mock_images):
         """Test ReadOMR processor execution."""
         gray_image, colored_image = mock_images
@@ -132,7 +136,7 @@ class TestReadOMRProcessor:
 class TestAlignmentProcessor:
     """Tests for AlignmentProcessor."""
 
-    @patch("src.algorithm.processor.alignment.apply_template_alignment")
+    @patch("src.processors.alignment.processor.apply_template_alignment")
     def test_alignment_with_reference_image(
         self, mock_apply_alignment, mock_template, mock_images
     ):
@@ -165,8 +169,8 @@ class TestAlignmentProcessor:
 class TestProcessingPipeline:
     """Tests for ProcessingPipeline."""
 
-    @patch("src.algorithm.processor.read_omr.ImageUtils")
-    @patch("src.algorithm.processor.image.ImageUtils")
+    @patch("src.processors.detection.processor.ImageUtils")
+    @patch("src.processors.image.coordinator.ImageUtils")
     def test_full_pipeline_execution(
         self, mock_preproc_utils, mock_detect_utils, mock_template, mock_images
     ):
