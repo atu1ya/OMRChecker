@@ -1,7 +1,7 @@
 """ReadOMR Processor for OMR detection and interpretation."""
 
-from src.algorithm.template.detection.template_file_runner import TemplateFileRunner
 from src.processors.base import ProcessingContext, Processor
+from src.processors.template.detection.template_file_runner import TemplateFileRunner
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
@@ -79,7 +79,9 @@ class ReadOMRProcessor(Processor):
         )
 
         # Extract interpretation metrics
-        directory_level_interpretation_aggregates = self.template_file_runner.get_directory_level_interpretation_aggregates()
+        directory_level_interpretation_aggregates = (
+            self.template_file_runner.get_directory_level_interpretation_aggregates()
+        )
 
         template_file_level_interpretation_aggregates = (
             directory_level_interpretation_aggregates["file_wise_aggregates"][file_path]

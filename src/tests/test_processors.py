@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from src.algorithm.template.template import Template
 from src.processors import (
     AlignmentProcessor,
     ProcessingContext,
@@ -14,6 +13,7 @@ from src.processors import (
     Processor,
     ReadOMRProcessor,
 )
+from src.processors.template.template import Template
 
 
 @pytest.fixture

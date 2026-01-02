@@ -33,12 +33,17 @@ def __getattr__(name: str) -> Any:  # noqa: ANN401
         from src.processors.detection import ReadOMRProcessor  # noqa: PLC0415
 
         return ReadOMRProcessor
+    if name == "EvaluationProcessor":
+        from src.processors.evaluation import EvaluationProcessor  # noqa: PLC0415
+
+        return EvaluationProcessor
     msg = f"module {__name__!r} has no attribute {name!r}"
     raise AttributeError(msg)
 
 
 __all__ = [
     "AlignmentProcessor",
+    "EvaluationProcessor",
     "ImageTemplatePreprocessor",
     "PreprocessingProcessor",
     "ProcessingContext",

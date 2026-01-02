@@ -7,16 +7,16 @@ import math
 
 import pytest
 
-from src.algorithm.template.detection.models.detection_results import (
+from src.processors.template.detection.models.detection_results import (
     BubbleFieldDetectionResult,
     BubbleMeanValue,
     FileDetectionResults,
     ScanQuality,
 )
-from src.algorithm.template.repositories.detection_repository import (
+from src.processors.template.repositories.detection_repository import (
     DetectionRepository,
 )
-from src.algorithm.template.threshold.strategies import (
+from src.processors.template.threshold.strategies import (
     AdaptiveThresholdStrategy,
     GlobalThresholdStrategy,
     LocalThresholdStrategy,

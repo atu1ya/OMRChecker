@@ -1,7 +1,9 @@
 """Alignment Processor for template alignment."""
 
-from src.algorithm.template.alignment.template_alignment import apply_template_alignment
 from src.processors.base import ProcessingContext, Processor
+from src.processors.template.alignment.template_alignment import (
+    apply_template_alignment,
+)
 from src.utils.logger import logger
 
 

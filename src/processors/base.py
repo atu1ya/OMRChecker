@@ -27,6 +27,12 @@ class ProcessingContext:
     is_multi_marked: bool = False
     field_id_to_interpretation: dict[str, Any] = field(default_factory=dict)
 
+    # Evaluation results (populated by EvaluationProcessor)
+    score: float = 0.0
+    evaluation_meta: dict[str, Any] | None = None
+    evaluation_config_for_response: Any = None
+    default_answers_summary: str = ""
+
     # Additional metadata
     metadata: dict[str, Any] = field(default_factory=dict)
 

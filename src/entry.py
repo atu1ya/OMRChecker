@@ -4,13 +4,13 @@ from time import time
 
 from rich.table import Table
 
-from src.algorithm.evaluation.evaluation_config import EvaluationConfig
-from src.algorithm.evaluation.evaluation_meta import evaluate_concatenated_response
-from src.algorithm.template.template import Template
 from src.exceptions import (
     InputDirectoryNotFoundError,
     TemplateNotFoundError,
 )
+from src.processors.evaluation.evaluation_config import EvaluationConfig
+from src.processors.evaluation.evaluation_meta import evaluate_concatenated_response
+from src.processors.template.template import Template
 from src.schemas.constants import DEFAULT_ANSWERS_SUMMARY_FORMAT_STRING
 from src.schemas.defaults import CONFIG_DEFAULTS
 from src.schemas.models.config import Config
