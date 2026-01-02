@@ -11,7 +11,7 @@ from src.processors.constants import (
     WarpMethod,
     ZonePreset,
 )
-from src.processors.internal.CropOnPatchesCommon import CropOnPatchesCommon
+from src.processors.image.CropOnPatchesCommon import CropOnPatchesCommon
 from src.utils.drawing import DrawingUtils
 from src.utils.image import ImageUtils
 from src.utils.interaction import InteractionUtils

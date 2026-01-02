@@ -14,7 +14,7 @@ from src.processors.constants import (
     SelectorType,
     WarpMethod,
 )
-from src.processors.internal.WarpOnPointsCommon import WarpOnPointsCommon
+from src.processors.image.WarpOnPointsCommon import WarpOnPointsCommon
 from src.utils.constants import CLR_DARK_GREEN, CLR_NEAR_BLACK, OUTPUT_MODES
 from src.utils.drawing import DrawingUtils
 from src.utils.image import ImageUtils

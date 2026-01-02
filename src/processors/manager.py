@@ -1,12 +1,12 @@
 from src.exceptions import ConfigError
-from src.processors.AutoRotate import AutoRotate
-from src.processors.Contrast import Contrast
-from src.processors.CropOnMarkers import CropOnMarkers
-from src.processors.CropPage import CropPage
-from src.processors.FeatureBasedAlignment import FeatureBasedAlignment
-from src.processors.GaussianBlur import GaussianBlur
-from src.processors.Levels import Levels
-from src.processors.MedianBlur import MedianBlur
+from src.processors.image.AutoRotate import AutoRotate
+from src.processors.image.Contrast import Contrast
+from src.processors.image.CropOnMarkers import CropOnMarkers
+from src.processors.image.CropPage import CropPage
+from src.processors.image.FeatureBasedAlignment import FeatureBasedAlignment
+from src.processors.image.GaussianBlur import GaussianBlur
+from src.processors.image.Levels import Levels
+from src.processors.image.MedianBlur import MedianBlur
 from src.utils.constants import SUPPORTED_PROCESSOR_NAMES
 
 # Note: we're now hard coding the processors mapping to support working export of PyInstaller

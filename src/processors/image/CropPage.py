@@ -16,7 +16,7 @@ from src.constants import (
 )
 from src.exceptions import ImageProcessingError
 from src.processors.constants import EDGE_TYPES_IN_ORDER, WarpMethod
-from src.processors.internal.WarpOnPointsCommon import WarpOnPointsCommon
+from src.processors.image.WarpOnPointsCommon import WarpOnPointsCommon
 from src.utils.constants import CLR_WHITE, hsv_white_high, hsv_white_low
 from src.utils.drawing import DrawingUtils
 from src.utils.image import ImageUtils
