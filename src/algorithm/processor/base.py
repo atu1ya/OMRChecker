@@ -1,4 +1,4 @@
-"""Base classes for the processing pipeline."""
+"""Base classes for the unified processor architecture."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -10,9 +10,9 @@ from cv2.typing import MatLike
 
 @dataclass
 class ProcessingContext:
-    """Context object that flows through the pipeline stages.
+    """Context object that flows through all processors.
 
-    This encapsulates all the data that gets passed between stages,
+    This encapsulates all the data that gets passed between processors,
     making it easy to add new data without changing method signatures.
     """
 
@@ -22,7 +22,7 @@ class ProcessingContext:
     colored_image: MatLike
     template: Any  # Template type (avoiding circular import)
 
-    # Processing results (populated by stages)
+    # Processing results (populated by processors)
     omr_response: dict[str, str] = field(default_factory=dict)
     is_multi_marked: bool = False
     field_id_to_interpretation: dict[str, Any] = field(default_factory=dict)
@@ -36,28 +36,28 @@ class ProcessingContext:
             self.file_path = str(self.file_path)
 
 
-class PipelineStage(ABC):
-    """Abstract base class for a pipeline stage.
+class Processor(ABC):
+    """Abstract base class for all processors.
 
-    Each stage represents a distinct phase of processing (preprocessing,
-    alignment, detection, etc.) and has a clear input/output contract.
+    All processing steps (image preprocessing, alignment, detection, etc.)
+    inherit from this class and implement the same interface for consistency.
     """
 
     @abstractmethod
-    def execute(self, context: ProcessingContext) -> ProcessingContext:
-        """Execute this stage of the pipeline.
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        """Process the context and return updated context.
 
         Args:
             context: The processing context containing all current state
 
         Returns:
-            Updated processing context with results from this stage
+            Updated processing context with results from this processor
         """
 
     @abstractmethod
-    def get_stage_name(self) -> str:
-        """Get a human-readable name for this stage.
+    def get_name(self) -> str:
+        """Get a human-readable name for this processor.
 
         Returns:
-            String name of the stage (e.g., "Preprocessing", "Detection")
+            String name of the processor (e.g., "AutoRotate", "ReadOMR")
         """

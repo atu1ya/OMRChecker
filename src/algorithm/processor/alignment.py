@@ -1,19 +1,19 @@
-"""Alignment stage for the processing pipeline."""
+"""Alignment Processor for template alignment."""
 
-from src.algorithm.pipeline.base import PipelineStage, ProcessingContext
+from src.algorithm.processor.base import ProcessingContext, Processor
 from src.algorithm.template.alignment.template_alignment import apply_template_alignment
 from src.utils.logger import logger
 
 
-class AlignmentStage(PipelineStage):
-    """Stage that applies template alignment to images.
+class AlignmentProcessor(Processor):
+    """Processor that applies template alignment to images.
 
-    This stage performs feature-based alignment if a reference image
+    This processor performs feature-based alignment if a reference image
     is provided in the template configuration.
     """
 
     def __init__(self, template) -> None:
-        """Initialize the alignment stage.
+        """Initialize the alignment processor.
 
         Args:
             template: The template containing alignment configuration
@@ -21,11 +21,11 @@ class AlignmentStage(PipelineStage):
         self.template = template
         self.tuning_config = template.tuning_config
 
-    def get_stage_name(self) -> str:
-        """Get the name of this stage."""
+    def get_name(self) -> str:
+        """Get the name of this processor."""
         return "Alignment"
 
-    def execute(self, context: ProcessingContext) -> ProcessingContext:
+    def process(self, context: ProcessingContext) -> ProcessingContext:
         """Execute alignment on the images.
 
         Args:
@@ -34,7 +34,7 @@ class AlignmentStage(PipelineStage):
         Returns:
             Updated context with aligned images and template
         """
-        logger.debug(f"Starting {self.get_stage_name()} stage")
+        logger.debug(f"Starting {self.get_name()} processor")
 
         gray_image = context.gray_image
         colored_image = context.colored_image
@@ -51,6 +51,6 @@ class AlignmentStage(PipelineStage):
             context.colored_image = colored_image
             context.template = template
 
-        logger.debug(f"Completed {self.get_stage_name()} stage")
+        logger.debug(f"Completed {self.get_name()} processor")
 
         return context

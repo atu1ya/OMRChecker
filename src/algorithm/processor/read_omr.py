@@ -1,23 +1,23 @@
-"""Detection and Interpretation stage for the processing pipeline."""
+"""ReadOMR Processor for OMR detection and interpretation."""
 
-from src.algorithm.pipeline.base import PipelineStage, ProcessingContext
+from src.algorithm.processor.base import ProcessingContext, Processor
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
 
-class DetectionInterpretationStage(PipelineStage):
-    """Stage that performs field detection and interpretation.
+class ReadOMRProcessor(Processor):
+    """Processor that performs OMR detection and interpretation.
 
-    This stage:
+    This processor:
     1. Resizes images to template dimensions
     2. Normalizes the images
     3. Runs field detection (bubbles, OCR, barcodes)
     4. Interprets the detected data
-    5. Extracts metrics and flags (multi-marked, etc.)
+    5. Stores results in context
     """
 
     def __init__(self, template) -> None:
-        """Initialize the detection and interpretation stage.
+        """Initialize the ReadOMR processor.
 
         Args:
             template: The template containing field definitions and runners
@@ -25,20 +25,20 @@ class DetectionInterpretationStage(PipelineStage):
         self.template = template
         self.tuning_config = template.tuning_config
 
-    def get_stage_name(self) -> str:
-        """Get the name of this stage."""
-        return "Detection & Interpretation"
+    def get_name(self) -> str:
+        """Get the name of this processor."""
+        return "ReadOMR"
 
-    def execute(self, context: ProcessingContext) -> ProcessingContext:
-        """Execute detection and interpretation on the images.
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        """Execute OMR detection and interpretation.
 
         Args:
-            context: Processing context with aligned images
+            context: Processing context with preprocessed and aligned images
 
         Returns:
             Updated context with OMR response and interpretation metrics
         """
-        logger.debug(f"Starting {self.get_stage_name()} stage")
+        logger.debug(f"Starting {self.get_name()} processor")
 
         template = context.template
         file_path = context.file_path
@@ -93,6 +93,6 @@ class DetectionInterpretationStage(PipelineStage):
         # Store raw response in metadata
         context.metadata["raw_omr_response"] = raw_omr_response
 
-        logger.debug(f"Completed {self.get_stage_name()} stage")
+        logger.debug(f"Completed {self.get_name()} processor")
 
         return context

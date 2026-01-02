@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from src.algorithm.pipeline.pipeline import TemplateProcessingPipeline
+from src.algorithm.processor.pipeline import ProcessingPipeline
 from src.algorithm.template.detection.template_file_runner import TemplateFileRunner
 from src.algorithm.template.directory_handler import TemplateDirectoryHandler
 from src.algorithm.template.layout.template_drawing import TemplateDrawing
@@ -44,8 +44,8 @@ class Template:
         self.template_file_runner = TemplateFileRunner(self)
         self.directory_handler = TemplateDirectoryHandler(self)
 
-        # Initialize the processing pipeline
-        self.pipeline = TemplateProcessingPipeline(self)
+        # Initialize the unified processor pipeline
+        self.pipeline = ProcessingPipeline(self)
 
     # TODO: move some other functions here
     def apply_preprocessors(self, file_path, gray_image, colored_image):
@@ -160,9 +160,8 @@ class Template:
     def process_file(self, file_path, gray_image, colored_image):
         """Process a file through the entire pipeline (preprocessing, alignment, detection).
 
-        This is the new unified method that uses the pipeline pattern.
-        It replaces the separate calls to apply_preprocessors, apply_alignment,
-        and read_omr_response.
+        Uses the unified processor-based pipeline where all processors work with
+        the same ProcessingContext interface.
 
         Args:
             file_path: Path to the file being processed
