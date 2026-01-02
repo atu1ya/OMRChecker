@@ -3,9 +3,9 @@ from pathlib import Path
 
 from src.processors import ProcessingPipeline
 from src.processors.constants import FieldDetectionType
+from src.processors.layout.template_drawing import TemplateDrawing
+from src.processors.layout.template_layout import TemplateLayout
 from src.processors.template.directory_handler import TemplateDirectoryHandler
-from src.processors.template.layout.template_drawing import TemplateDrawing
-from src.processors.template.layout.template_layout import TemplateLayout
 from src.utils.file import PathUtils, SaveImageOps
 from src.utils.logger import logger
 

@@ -1,7 +1,7 @@
 """ReadOMR Processor for OMR detection and interpretation."""
 
 from src.processors.base import ProcessingContext, Processor
-from src.processors.template.detection.template_file_runner import TemplateFileRunner
+from src.processors.detection.template_file_runner import TemplateFileRunner
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
