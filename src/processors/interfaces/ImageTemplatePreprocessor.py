@@ -4,12 +4,17 @@ from typing import Any, Never
 
 from cv2.typing import MatLike
 
+from src.algorithm.processor.base import ProcessingContext
 from src.processors.internal.Processor import Processor
 from src.utils.image import ImageUtils
+from src.utils.logger import logger
 
 
 class ImageTemplatePreprocessor(Processor):
-    """Base class for an extension that applies some preprocessing to the input image."""
+    """Base class for an extension that applies some preprocessing to the input image.
+
+    Now implements the unified Processor interface with process(context) method.
+    """
 
     def __init__(
         self, options, relative_dir, save_image_ops, default_processing_image_shape
@@ -41,6 +46,7 @@ class ImageTemplatePreprocessor(Processor):
         raise NotImplementedError
 
     def resize_and_apply_filter(self, in_image, colored_image, _template, _file_path):
+        """Legacy method for backward compatibility."""
         config = self.tuning_config
 
         in_image = ImageUtils.resize_to_shape(self.processing_image_shape, in_image)
@@ -56,6 +62,47 @@ class ImageTemplatePreprocessor(Processor):
         )
 
         return out_image, colored_image, _template
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        """Process images using the unified processor interface.
+
+        This is the new interface that all processors must implement.
+        It wraps the legacy resize_and_apply_filter method.
+
+        Args:
+            context: Processing context with images and state
+
+        Returns:
+            Updated context with processed images
+        """
+        logger.debug(f"Starting {self.get_name()} processor")
+
+        gray_image = context.gray_image
+        colored_image = context.colored_image
+        template = context.template
+        file_path = context.file_path
+
+        # Resize images to preprocessor's processing shape
+        gray_image = ImageUtils.resize_to_shape(self.processing_image_shape, gray_image)
+
+        if self.tuning_config.outputs.colored_outputs_enabled:
+            colored_image = ImageUtils.resize_to_shape(
+                self.processing_image_shape, colored_image
+            )
+
+        # Apply the specific filter
+        gray_image, colored_image, template = self.apply_filter(
+            gray_image, colored_image, template, file_path
+        )
+
+        # Update context
+        context.gray_image = gray_image
+        context.colored_image = colored_image
+        context.template = template
+
+        logger.debug(f"Completed {self.get_name()} processor")
+
+        return context
 
     def exclude_files(self) -> list[Path]:
         """Return a list of file paths that should be excluded from processing."""
