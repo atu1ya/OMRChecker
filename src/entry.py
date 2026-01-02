@@ -151,18 +151,35 @@ def process_directory_wise(
         # Add FileOrganizerProcessor if enabled in config
         file_grouping_config = tuning_config.outputs.file_grouping
         if file_grouping_config.enabled:
-            from src.processors.organization import (  # noqa: PLC0415
-                FileOrganizerProcessor,
+            # Validate configuration before adding processor
+            has_evaluation = evaluation_config is not None
+            validation_errors = file_grouping_config.validate(
+                template=template, has_evaluation=has_evaluation
             )
 
-            organizer = FileOrganizerProcessor(
-                file_grouping_config, output_dir=template.path_utils.output_dir
-            )
+            if validation_errors:
+                logger.error(
+                    "File grouping configuration has errors. Please fix the following issues:"
+                )
+                for error in validation_errors:
+                    logger.error(f"  - {error}")
+                logger.error(
+                    "\nFile organization will be DISABLED for this directory. "
+                    "Fix the errors in your config.json to enable it."
+                )
+            else:
+                from src.processors.organization import (  # noqa: PLC0415
+                    FileOrganizerProcessor,
+                )
 
-            # Add to template's pipeline
-            template.pipeline.add_processor(organizer)
+                organizer = FileOrganizerProcessor(
+                    file_grouping_config, output_dir=template.path_utils.output_dir
+                )
 
-            logger.info("File organization enabled with dynamic patterns")
+                # Add to template's pipeline
+                template.pipeline.add_processor(organizer)
+
+                logger.info("File organization enabled with dynamic patterns")
 
         print_config_summary(
             curr_dir,

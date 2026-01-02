@@ -1,8 +1,12 @@
 """Typed dataclass models for configuration."""
 
+import re
+import string
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 
+from src.utils.logger import logger
 from src.utils.serialization import dataclass_to_dict
 
 
@@ -42,6 +46,181 @@ class FileGroupingConfig:
     enabled: bool = False
     rules: list[GroupingRule] = field(default_factory=list)
     default_pattern: str = "ungrouped/{original_name}"  # Default for non-matching files
+
+    # Always available fields in patterns (built-in)
+    BUILTIN_FIELDS: ClassVar[set[str]] = {
+        "file_path",
+        "file_name",
+        "file_stem",
+        "original_name",
+        "is_multi_marked",
+    }
+
+    # Fields that require evaluation to be enabled
+    EVALUATION_FIELDS: ClassVar[set[str]] = {"score"}
+
+    def validate(self, template=None, *, has_evaluation: bool = False) -> list[str]:
+        """Validate the file grouping configuration.
+
+        Args:
+            template: Optional template object to check available OMR fields
+            has_evaluation: Whether evaluation is enabled
+
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+
+        if not self.enabled:
+            return errors  # Skip validation if disabled
+
+        # Validate default pattern
+        pattern_errors = self._validate_pattern(
+            self.default_pattern,
+            "default_pattern",
+            template,
+            has_evaluation,
+        )
+        errors.extend(pattern_errors)
+
+        # Validate each rule
+        for i, rule in enumerate(self.rules, 1):
+            rule_errors = self._validate_rule(rule, i, template, has_evaluation)
+            errors.extend(rule_errors)
+
+        # Check for duplicate priorities
+        priorities = [rule.priority for rule in self.rules]
+        if len(priorities) != len(set(priorities)):
+            duplicates = [p for p in priorities if priorities.count(p) > 1]
+            errors.append(
+                f"Duplicate rule priorities found: {set(duplicates)}. "
+                "Each rule should have a unique priority."
+            )
+
+        return errors
+
+    def _validate_rule(
+        self,
+        rule: GroupingRule,
+        rule_num: int,
+        template,
+        has_evaluation: bool,  # noqa: FBT001
+    ) -> list[str]:
+        """Validate a single grouping rule."""
+        errors = []
+        prefix = f"Rule #{rule_num} ('{rule.name}')"
+
+        # Validate destination pattern
+        pattern_errors = self._validate_pattern(
+            rule.destination_pattern,
+            f"{prefix} destination_pattern",
+            template,
+            has_evaluation,
+        )
+        errors.extend(pattern_errors)
+
+        # Validate matcher format string
+        matcher_format = rule.matcher.get("formatString", "")
+        matcher_errors = self._validate_pattern(
+            matcher_format,
+            f"{prefix} matcher.formatString",
+            template,
+            has_evaluation,
+            allow_empty=False,
+        )
+        errors.extend(matcher_errors)
+
+        # Validate regex pattern
+        try:
+            re.compile(rule.matcher.get("matchRegex", ""))
+        except re.error as e:
+            errors.append(f"{prefix}: Invalid regex pattern in matcher.matchRegex: {e}")
+
+        # Validate action
+        if rule.action not in ("symlink", "copy"):
+            errors.append(
+                f"{prefix}: Invalid action '{rule.action}'. "
+                "Must be 'symlink' or 'copy'."
+            )
+
+        # Validate collision strategy
+        if rule.collision_strategy not in ("skip", "increment", "overwrite"):
+            errors.append(
+                f"{prefix}: Invalid collision_strategy '{rule.collision_strategy}'. "
+                "Must be 'skip', 'increment', or 'overwrite'."
+            )
+
+        return errors
+
+    def _validate_pattern(  # noqa: C901 - Complexity needed for thorough validation
+        self,
+        pattern: str,
+        pattern_name: str,
+        template,
+        has_evaluation: bool,  # noqa: FBT001
+        allow_empty: bool = True,  # noqa: FBT001
+    ) -> list[str]:
+        """Validate a pattern string for field availability."""
+        errors = []
+
+        if not pattern and not allow_empty:
+            errors.append(f"{pattern_name}: Pattern cannot be empty")
+            return errors
+
+        if not pattern:
+            return errors
+
+        # Extract field names from pattern using string.Formatter
+        try:
+            formatter = string.Formatter()
+            field_names = {
+                field_name
+                for _, field_name, _, _ in formatter.parse(pattern)
+                if field_name
+            }
+        except (ValueError, KeyError) as e:
+            errors.append(f"{pattern_name}: Invalid pattern syntax: {e}")
+            return errors
+
+        # Check each field
+        for field_name in field_names:
+            # Check if it's a built-in field
+            if field_name in self.BUILTIN_FIELDS:
+                continue
+
+            # Check if it requires evaluation
+            if field_name in self.EVALUATION_FIELDS:
+                if not has_evaluation:
+                    errors.append(
+                        f"{pattern_name}: Field '{{{field_name}}}' requires evaluation.json "
+                        f"to be present. Either add evaluation.json or remove this field from the pattern."
+                    )
+                continue
+
+            # Check if it's an OMR field from template
+            if template:
+                # Get all fields from template
+                template_fields = set()
+                if hasattr(template, "all_fields"):
+                    template_fields.update(template.all_fields)
+
+                if field_name not in template_fields:
+                    # Provide helpful error message
+                    available = sorted(
+                        self.BUILTIN_FIELDS | self.EVALUATION_FIELDS | template_fields
+                    )
+                    errors.append(
+                        f"{pattern_name}: Field '{{{field_name}}}' not found in template. "
+                        f"Available fields: {', '.join(f'{{{f}}}' for f in available)}"
+                    )
+            else:
+                # No template available for validation - just warn
+                logger.warning(
+                    f"{pattern_name}: Cannot validate field '{{{field_name}}}' "
+                    f"without template context"
+                )
+
+        return errors
 
 
 @dataclass
