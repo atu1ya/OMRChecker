@@ -98,6 +98,13 @@ class TemplateLayout:
 
     # TODO: separate out preprocessing into a class?
     def apply_preprocessors(self, file_path, gray_image, colored_image):
+        """Apply preprocessors using the unified processor interface.
+
+        Note: This method is maintained for backward compatibility with
+        TemplateLayout's internal processing, but uses the new unified interface.
+        """
+        from src.processors.base import ProcessingContext  # noqa: PLC0415
+
         config = self.tuning_config
 
         next_template_layout = self.get_copy_for_shifting()
@@ -130,14 +137,19 @@ class TemplateLayout:
                     ),
                 )
 
-            # Apply filter
-            (
-                gray_image,
-                colored_image,
-                next_template_layout,
-            ) = pre_processor.resize_and_apply_filter(
-                gray_image, colored_image, next_template_layout, file_path
+            # Apply filter using unified processor interface
+            context = ProcessingContext(
+                gray_image=gray_image,
+                colored_image=colored_image,
+                template=next_template_layout,
+                file_path=file_path,
             )
+            context = pre_processor.process(context)
+
+            # Extract results from context
+            gray_image = context.gray_image
+            colored_image = context.colored_image
+            next_template_layout = context.template
 
             # Show After Preview
             if show_preprocessors_diff[pre_processor_name]:

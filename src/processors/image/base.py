@@ -4,25 +4,28 @@ from typing import Any, Never
 
 from cv2.typing import MatLike
 
-from src.processors._legacy_processor import Processor
-from src.processors.base import ProcessingContext
+from src.processors.base import ProcessingContext, Processor
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
 
 class ImageTemplatePreprocessor(Processor):
-    """Base class for an extension that applies some preprocessing to the input image.
+    """Base class for image preprocessing.
 
-    Now implements the unified Processor interface with process(context) method.
+    All image preprocessors inherit from this class and implement the
+    unified Processor interface with process(context) method.
     """
 
     def __init__(
         self, options, relative_dir, save_image_ops, default_processing_image_shape
     ) -> None:
-        super().__init__(
-            options,
-            relative_dir,
-        )
+        # Initialize processor-specific attributes
+        self.options = options
+        self.tuning_options = options.get("tuningOptions", {})
+        self.relative_dir = Path(relative_dir)
+        self.description = "UNKNOWN"
+
+        # Image preprocessing specific attributes
         self.append_save_image = save_image_ops.append_save_image
         self.tuning_config = save_image_ops.tuning_config
 
@@ -43,31 +46,17 @@ class ImageTemplatePreprocessor(Processor):
         raise NotImplementedError
 
     def get_class_name(self) -> Never:
+        """Get the class name for this preprocessor."""
         raise NotImplementedError
 
-    def resize_and_apply_filter(self, in_image, colored_image, _template, _file_path):
-        """Legacy method for backward compatibility."""
-        config = self.tuning_config
-
-        in_image = ImageUtils.resize_to_shape(self.processing_image_shape, in_image)
-
-        if config.outputs.colored_outputs_enabled:
-            colored_image = ImageUtils.resize_to_shape(
-                self.processing_image_shape,
-                colored_image,
-            )
-
-        out_image, colored_image, _template = self.apply_filter(
-            in_image, colored_image, _template, _file_path
-        )
-
-        return out_image, colored_image, _template
+    def get_name(self) -> str:
+        """Get the name of this processor (required by unified Processor interface)."""
+        return self.get_class_name()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         """Process images using the unified processor interface.
 
-        This is the new interface that all processors must implement.
-        It wraps the legacy resize_and_apply_filter method.
+        This is the interface that all processors must implement.
 
         Args:
             context: Processing context with images and state
