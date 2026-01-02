@@ -173,15 +173,10 @@ class EvaluationConfigForSet:
             self.exclude_files.append(image_path)
 
             logger.info(f"Attempting to generate answer key from image: '{image_path}'")
-            # TODO: use a common function for below changes?
+            # Read the answer key image
             gray_image, colored_image = ImageUtils.read_image_util(
                 image_path, tuning_config
             )
-            (
-                gray_image,
-                colored_image,
-                template,
-            ) = template.apply_preprocessors(image_path, gray_image, colored_image)
             if gray_image is None:
                 error_msg = f"Could not read answer key from image {image_path}"
                 raise ImageReadError(
@@ -189,9 +184,9 @@ class EvaluationConfigForSet:
                     context={"image_path": str(image_path)},
                 )
 
-            _, concatenated_omr_response = template.read_omr_response(
-                gray_image, colored_image, image_path
-            )
+            # Use process_file which runs the full pipeline (preprocessing, alignment, detection)
+            context = template.process_file(image_path, gray_image, colored_image)
+            concatenated_omr_response = context.omr_response
 
             empty_value = template.global_empty_val
             empty_answer_regex = (

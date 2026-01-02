@@ -411,6 +411,7 @@ def process_single_file(
                 str(file_path),
                 evaluation_meta,
                 field_id_to_interpretation,
+                context=context,  # Pass context for accessing aggregates
             )
 
         # Save output CSV results

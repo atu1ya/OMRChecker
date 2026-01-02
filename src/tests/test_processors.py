@@ -9,10 +9,9 @@ import pytest
 from src.algorithm.template.template import Template
 from src.processors import (
     AlignmentProcessor,
-    ImageTemplatePreprocessor,
     ProcessingContext,
-    Processor,
     ProcessingPipeline,
+    Processor,
     ReadOMRProcessor,
 )
 
@@ -40,6 +39,12 @@ def mock_template():
     template.template_dimensions = [1000, 800]
     template.save_image_ops = Mock()
     template.save_image_ops.append_save_image = Mock()
+
+    # Mock fields and detection types for TemplateFileRunner
+    template.all_fields = []
+    template.all_field_detection_types = []
+    template.path = Mock()
+    template.path.parent = Path("/tmp")
 
     template.template_file_runner = Mock()
     template.template_file_runner.read_omr_and_update_metrics = Mock(

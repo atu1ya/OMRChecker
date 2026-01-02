@@ -1,14 +1,12 @@
 import json
 from pathlib import Path
 
-from src.algorithm.template.detection.template_file_runner import TemplateFileRunner
 from src.algorithm.template.directory_handler import TemplateDirectoryHandler
 from src.algorithm.template.layout.template_drawing import TemplateDrawing
 from src.algorithm.template.layout.template_layout import TemplateLayout
 from src.processors import ProcessingPipeline
 from src.processors.constants import FieldDetectionType
 from src.utils.file import PathUtils, SaveImageOps
-from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
 """
@@ -41,10 +39,10 @@ class Template:
         # TODO: check Traits pattern?
         self.drawing = TemplateDrawing(self)
 
-        self.template_file_runner = TemplateFileRunner(self)
         self.directory_handler = TemplateDirectoryHandler(self)
 
         # Initialize the unified processor pipeline
+        # Note: TemplateFileRunner is now instantiated in ReadOMRProcessor
         self.pipeline = ProcessingPipeline(self)
 
     # TODO: move some other functions here
@@ -113,8 +111,14 @@ class Template:
         return self.directory_handler.output_files["Errors"]
 
     def finish_processing_directory(self):
+        """Finish processing directory and get aggregated results.
+
+        Note: This delegates to the ReadOMRProcessor via the pipeline.
+        """
         self.directory_handler.finish_processing_directory()
-        return self.template_file_runner.finish_processing_directory()
+        # Get the ReadOMRProcessor from the pipeline
+        read_omr_processor = self.pipeline.processors[-1]  # Last processor
+        return read_omr_processor.finish_processing_directory()
 
     def get_save_marked_dir(self):
         return self.directory_handler.path_utils.save_marked_dir
@@ -127,35 +131,6 @@ class Template:
 
     def get_evaluations_dir(self):
         return self.directory_handler.path_utils.evaluations_dir
-
-    def read_omr_response(self, input_gray_image, colored_image, file_path):
-        """Read OMR response using the detection/interpretation stage directly.
-
-        This is the legacy method that only does detection and interpretation,
-        without preprocessing or alignment. Used when those stages were already
-        applied separately.
-        """
-        # Convert posix path to string
-        file_path = str(file_path)
-
-        # Note: resize also creates a copy
-        gray_image, colored_image = ImageUtils.resize_to_dimensions(
-            self.template_dimensions, input_gray_image, colored_image
-        )
-        # Resize to template dimensions for saved outputs
-        self.save_image_ops.append_save_image(
-            "Resized Image", range(3, 7), gray_image, colored_image
-        )
-
-        gray_image, colored_image = ImageUtils.normalize(gray_image, colored_image)
-
-        raw_omr_response = self.template_file_runner.read_omr_and_update_metrics(
-            file_path, gray_image, colored_image
-        )
-
-        concatenated_omr_response = self.get_concatenated_omr_response(raw_omr_response)
-
-        return concatenated_omr_response, raw_omr_response
 
     def process_file(self, file_path, gray_image, colored_image):
         """Process a file through the entire pipeline (preprocessing, alignment, detection).
@@ -173,11 +148,24 @@ class Template:
         """
         return self.pipeline.process_file(file_path, gray_image, colored_image)
 
-    # TODO: move inside template runner
-    def get_omr_metrics_for_file(self, file_path):
-        # This can be used for drawing the bubbles etc
+    def get_omr_metrics_for_file(self, file_path, context=None):
+        """Get OMR metrics for a file from the processing context.
+
+        Args:
+            file_path: Path to the file
+            context: ProcessingContext from pipeline (if available)
+
+        Returns:
+            Tuple of (is_multi_marked, field_id_to_interpretation)
+        """
+        if context is not None:
+            # Get from context if available (preferred)
+            return context.is_multi_marked, context.field_id_to_interpretation
+
+        # Fallback: get from ReadOMRProcessor
+        read_omr_processor = self.pipeline.processors[-1]
         directory_level_interpretation_aggregates = (
-            self.template_file_runner.get_directory_level_interpretation_aggregates()
+            read_omr_processor.template_file_runner.get_directory_level_interpretation_aggregates()
         )
 
         template_file_level_interpretation_aggregates = (
@@ -193,18 +181,28 @@ class Template:
         ]
         return is_multi_marked, field_id_to_interpretation
 
-    # TODO: figure out a structure to output directory metrics apart from from this file one.
-    # directory_metrics_path = self.path_utils.image_metrics_dir.joinpath()
-    # def export_omr_metrics_for_directory()
     def export_omr_metrics_for_file(
-        self, file_path, evaluation_meta, field_id_to_interpretation
+        self, file_path, evaluation_meta, field_id_to_interpretation, context=None
     ) -> None:
-        # TODO: move these inside self.template_file_runner.get_export_omr_metrics_for_file
-        # This can be used for drawing the bubbles etc
-        directory_level_interpretation_aggregates = (
-            # TODO: get from file_level_interpretation_aggregates.field_detection_runner?
-            self.template_file_runner.get_directory_level_interpretation_aggregates()
-        )
+        """Export OMR metrics for a file.
+
+        Args:
+            file_path: Path to the file
+            evaluation_meta: Evaluation metadata
+            field_id_to_interpretation: Field interpretations
+            context: ProcessingContext from pipeline (optional, for accessing aggregates)
+        """
+        # Get aggregates from context if available, otherwise from ReadOMRProcessor
+        if context is not None and "directory_level_interpretation_aggregates" in context.metadata:
+            directory_level_interpretation_aggregates = context.metadata[
+                "directory_level_interpretation_aggregates"
+            ]
+        else:
+            # Fallback: get from ReadOMRProcessor
+            read_omr_processor = self.pipeline.processors[-1]
+            directory_level_interpretation_aggregates = (
+                read_omr_processor.template_file_runner.get_directory_level_interpretation_aggregates()
+            )
 
         template_file_level_interpretation_aggregates = (
             directory_level_interpretation_aggregates["file_wise_aggregates"][file_path]
