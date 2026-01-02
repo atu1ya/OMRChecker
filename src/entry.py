@@ -148,6 +148,22 @@ def process_directory_wise(
         # Reset all mutations to the template, and setup output directories
         template.reset_and_setup_for_directory(output_dir)
 
+        # Add FileOrganizerProcessor if enabled in config
+        file_grouping_config = tuning_config.outputs.file_grouping
+        if file_grouping_config.enabled:
+            from src.processors.organization import (  # noqa: PLC0415
+                FileOrganizerProcessor,
+            )
+
+            organizer = FileOrganizerProcessor(
+                file_grouping_config, output_dir=template.path_utils.output_dir
+            )
+
+            # Add to template's pipeline
+            template.pipeline.add_processor(organizer)
+
+            logger.info("File organization enabled with dynamic patterns")
+
         print_config_summary(
             curr_dir,
             omr_files,

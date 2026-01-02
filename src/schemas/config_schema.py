@@ -152,6 +152,82 @@ CONFIG_SCHEMA = {
                             "description": "This option moves files having multi-marked responses into a separate folder for manual checking, skipping evaluation",
                             "type": "boolean",
                         },
+                        "file_grouping": {
+                            "description": "Configuration for organizing processed files with dynamic patterns",
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "description": "Enable automatic file organization",
+                                    "type": "boolean",
+                                    "default": False,
+                                },
+                                "default_pattern": {
+                                    "description": "Default pattern for files not matching any rule (use {original_name} for original filename)",
+                                    "type": "string",
+                                    "default": "ungrouped/{original_name}",
+                                },
+                                "rules": {
+                                    "description": "List of grouping rules (evaluated by priority)",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "required": [
+                                            "name",
+                                            "priority",
+                                            "destination_pattern",
+                                            "matcher",
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "description": "Rule name for logging",
+                                                "type": "string",
+                                            },
+                                            "priority": {
+                                                "description": "Rule priority (lower = higher priority)",
+                                                "type": "integer",
+                                                "minimum": 0,
+                                            },
+                                            "destination_pattern": {
+                                                "description": "Full path pattern with {field} placeholders (e.g., 'booklet_{code}/{roll}_{score}'). Extension auto-preserved if omitted.",
+                                                "type": "string",
+                                            },
+                                            "action": {
+                                                "description": "Action to perform (symlink or copy)",
+                                                "enum": ["symlink", "copy"],
+                                                "default": "symlink",
+                                            },
+                                            "collision_strategy": {
+                                                "description": "How to handle filename collisions",
+                                                "enum": [
+                                                    "skip",
+                                                    "increment",
+                                                    "overwrite",
+                                                ],
+                                                "default": "skip",
+                                            },
+                                            "matcher": {
+                                                "description": "Pattern matcher using format string + regex",
+                                                "type": "object",
+                                                "required": [
+                                                    "formatString",
+                                                    "matchRegex",
+                                                ],
+                                                "properties": {
+                                                    "formatString": {
+                                                        "description": "Format string with {field} placeholders",
+                                                        "type": "string",
+                                                    },
+                                                    "matchRegex": {
+                                                        "description": "Regex pattern to match formatted string",
+                                                        "type": "string",
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                         "show_preprocessors_diff": {
                             "description": "This option shows a preview of the processed image for every preprocessor. Also granular at preprocessor level using a map",
                             "oneOf": [

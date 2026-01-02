@@ -24,6 +24,27 @@ class ThresholdingConfig:
 
 
 @dataclass
+class GroupingRule:
+    """A single file grouping rule with dynamic path pattern."""
+
+    name: str
+    priority: int
+    destination_pattern: str  # Full path pattern: "folder/{booklet}/roll_{roll}.jpg"
+    matcher: dict  # { "formatString": "...", "matchRegex": "..." }
+    action: str = "symlink"  # "symlink" or "copy"
+    collision_strategy: str = "skip"  # "skip", "increment", or "overwrite"
+
+
+@dataclass
+class FileGroupingConfig:
+    """Configuration for automatic file organization."""
+
+    enabled: bool = False
+    rules: list[GroupingRule] = field(default_factory=list)
+    default_pattern: str = "ungrouped/{original_name}"  # Default for non-matching files
+
+
+@dataclass
 class OutputsConfig:
     """Configuration for output behavior and visualization."""
 
@@ -46,6 +67,7 @@ class OutputsConfig:
     save_image_metrics: bool = False
     show_confidence_metrics: bool = False
     filter_out_multimarked_files: bool = False
+    file_grouping: FileGroupingConfig = field(default_factory=FileGroupingConfig)
 
 
 @dataclass
@@ -77,10 +99,25 @@ class Config:
         Returns:
             Config instance with nested dataclasses
         """
+        outputs_data = data.get("outputs", {})
+
+        # Parse file_grouping nested structure
+        if "file_grouping" in outputs_data:
+            grouping_data = outputs_data["file_grouping"]
+            rules_data = grouping_data.get("rules", [])
+            rules = [GroupingRule(**rule) for rule in rules_data]
+            outputs_data["file_grouping"] = FileGroupingConfig(
+                enabled=grouping_data.get("enabled", False),
+                default_pattern=grouping_data.get(
+                    "default_pattern", "ungrouped/{original_name}"
+                ),
+                rules=rules,
+            )
+
         return cls(
             path=Path(data.get("path", "config.json")),
             thresholding=ThresholdingConfig(**data.get("thresholding", {})),
-            outputs=OutputsConfig(**data.get("outputs", {})),
+            outputs=OutputsConfig(**outputs_data),
             processing=ProcessingConfig(**data.get("processing", {})),
         )
 

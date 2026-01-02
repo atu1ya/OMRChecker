@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.schemas.models.config import (
     Config,
+    FileGroupingConfig,
     OutputsConfig,
     ProcessingConfig,
     ThresholdingConfig,
@@ -43,6 +44,11 @@ CONFIG_DEFAULTS = Config(
         save_image_metrics=False,
         show_confidence_metrics=False,
         filter_out_multimarked_files=False,
+        file_grouping=FileGroupingConfig(
+            enabled=False,
+            default_pattern="ungrouped/{original_name}",
+            rules=[],
+        ),
     ),
     processing=ProcessingConfig(
         max_parallel_workers=1,  # Number of worker threads for parallel processing (1 = sequential)
