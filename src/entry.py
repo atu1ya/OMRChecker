@@ -6,7 +6,6 @@ from rich.table import Table
 
 from src.algorithm.evaluation.evaluation_config import EvaluationConfig
 from src.algorithm.evaluation.evaluation_meta import evaluate_concatenated_response
-from src.algorithm.template.alignment.template_alignment import apply_template_alignment
 from src.algorithm.template.template import Template
 from src.exceptions import (
     InputDirectoryNotFoundError,
@@ -282,21 +281,22 @@ def process_single_file(
             "Input Image", range(1, 7), gray_image, colored_image
         )
 
-        # Note: the returned template is a copy
-        (
-            gray_image,
-            colored_image,
-            template,
-        ) = template.apply_preprocessors(file_path, gray_image, colored_image)
+        # Use the unified pipeline to process the file
+        # This replaces the separate calls to:
+        # - template.apply_preprocessors()
+        # - apply_template_alignment()
+        # - template.read_omr_response()
+        context = template.process_file(file_path, gray_image, colored_image)
 
-        # TODO: [later] template & evaluation as a "Processor"?
-        # TODO: move apply_template_alignment into template class
-        if gray_image is not None and "gray_alignment_image" in template.alignment:
-            gray_image, colored_image, template = apply_template_alignment(
-                gray_image, colored_image, template, tuning_config
-            )
+        # Extract results from the context
+        concatenated_omr_response = context.omr_response
+        raw_omr_response = context.metadata.get("raw_omr_response", {})
+        is_multi_marked = context.is_multi_marked
+        field_id_to_interpretation = context.field_id_to_interpretation
+        gray_image = context.gray_image
+        colored_image = context.colored_image
 
-        # Error OMR case
+        # Error OMR case - check if preprocessing failed
         if gray_image is None:
             output_file_path = template.get_errors_dir().joinpath(file_name)
 
@@ -322,15 +322,8 @@ def process_single_file(
             logger.warning(f"Marker detection failed for '{file_path}'")
             return result
 
-        concatenated_omr_response, raw_omr_response = template.read_omr_response(
-            gray_image, colored_image, file_path
-        )
-
-        # TODO: refactor and consume within template runner
-        (
-            is_multi_marked,
-            field_id_to_interpretation,
-        ) = template.get_omr_metrics_for_file(str(file_path))
+        # Results are already extracted from context above
+        # concatenated_omr_response and field_id_to_interpretation are ready to use
 
         result["is_multi_marked"] = is_multi_marked
 

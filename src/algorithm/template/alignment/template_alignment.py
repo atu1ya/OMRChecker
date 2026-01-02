@@ -1,13 +1,17 @@
+from typing import TYPE_CHECKING
+
 from src.algorithm.template.alignment.k_nearest_interpolation import (
     apply_k_nearest_interpolation_inplace,
 )
-from src.algorithm.template.template import Template
 from src.utils.image import ImageUtils
 from src.utils.logger import logger
 
+if TYPE_CHECKING:
+    from src.algorithm.template.template import Template
+
 
 # TODO: move into template class
-def apply_template_alignment(gray_image, colored_image, template: Template, config):
+def apply_template_alignment(gray_image, colored_image, template: "Template", config):
     # Parsed
     template_margins, template_max_displacement = (
         template.alignment["margins"],

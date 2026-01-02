@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from src.algorithm.pipeline.pipeline import TemplateProcessingPipeline
 from src.algorithm.template.detection.template_file_runner import TemplateFileRunner
 from src.algorithm.template.directory_handler import TemplateDirectoryHandler
 from src.algorithm.template.layout.template_drawing import TemplateDrawing
@@ -42,6 +43,9 @@ class Template:
 
         self.template_file_runner = TemplateFileRunner(self)
         self.directory_handler = TemplateDirectoryHandler(self)
+
+        # Initialize the processing pipeline
+        self.pipeline = TemplateProcessingPipeline(self)
 
     # TODO: move some other functions here
     def apply_preprocessors(self, file_path, gray_image, colored_image):
@@ -125,6 +129,12 @@ class Template:
         return self.directory_handler.path_utils.evaluations_dir
 
     def read_omr_response(self, input_gray_image, colored_image, file_path):
+        """Read OMR response using the detection/interpretation stage directly.
+
+        This is the legacy method that only does detection and interpretation,
+        without preprocessing or alignment. Used when those stages were already
+        applied separately.
+        """
         # Convert posix path to string
         file_path = str(file_path)
 
@@ -146,6 +156,23 @@ class Template:
         concatenated_omr_response = self.get_concatenated_omr_response(raw_omr_response)
 
         return concatenated_omr_response, raw_omr_response
+
+    def process_file(self, file_path, gray_image, colored_image):
+        """Process a file through the entire pipeline (preprocessing, alignment, detection).
+
+        This is the new unified method that uses the pipeline pattern.
+        It replaces the separate calls to apply_preprocessors, apply_alignment,
+        and read_omr_response.
+
+        Args:
+            file_path: Path to the file being processed
+            gray_image: Input grayscale image
+            colored_image: Input colored image
+
+        Returns:
+            ProcessingContext containing omr_response, is_multi_marked, and all other results
+        """
+        return self.pipeline.process_file(file_path, gray_image, colored_image)
 
     # TODO: move inside template runner
     def get_omr_metrics_for_file(self, file_path):
