@@ -1,5 +1,7 @@
 """ReadOMR Processor for OMR detection and interpretation."""
 
+from pathlib import Path
+
 from src.processors.base import ProcessingContext, Processor
 from src.processors.detection.template_file_runner import TemplateFileRunner
 from src.utils.image import ImageUtils
@@ -15,14 +17,16 @@ class ReadOMRProcessor(Processor):
     3. Normalizes the images
     4. Runs field detection (bubbles, OCR, barcodes)
     5. Interprets the detected data
-    6. Stores results in context
+    6. Optionally uses ML fallback for low-confidence detections
+    7. Stores results in context
     """
 
-    def __init__(self, template) -> None:
+    def __init__(self, template, ml_model_path: str | Path | None = None) -> None:
         """Initialize the ReadOMR processor.
 
         Args:
             template: The template containing field definitions and layout
+            ml_model_path: Optional path to trained ML model for fallback detection
         """
         self.template = template
         self.tuning_config = template.tuning_config
@@ -31,13 +35,65 @@ class ReadOMRProcessor(Processor):
         # This decouples Template from processing logic
         self.template_file_runner = TemplateFileRunner(template)
 
+        # Optional ML fallback
+        self.ml_detector = None
+        self.hybrid_strategy = None
+        if ml_model_path:
+            self._initialize_ml_fallback(ml_model_path)
+
+    def _initialize_ml_fallback(self, ml_model_path: str | Path) -> None:
+        """Initialize ML fallback detector.
+
+        Args:
+            ml_model_path: Path to trained ML model
+        """
+        try:
+            from src.processors.detection.ml_detector import (  # noqa: PLC0415
+                HybridDetectionStrategy,
+                MLBubbleDetector,
+            )
+
+            self.ml_detector = MLBubbleDetector(ml_model_path)
+
+            # Initialize hybrid strategy
+            confidence_threshold = (
+                getattr(self.tuning_config.ml, "confidence_threshold", 0.75)
+                if hasattr(self.tuning_config, "ml")
+                else 0.75
+            )
+
+            self.hybrid_strategy = HybridDetectionStrategy(
+                self.ml_detector, confidence_threshold=confidence_threshold
+            )
+
+            logger.info(f"ML fallback enabled with model: {ml_model_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to initialize ML fallback: {e}")
+            self.ml_detector = None
+            self.hybrid_strategy = None
+
     def get_name(self) -> str:
         """Get the name of this processor."""
         return "ReadOMR"
 
     def finish_processing_directory(self):
         """Finish processing directory and get aggregated results."""
-        return self.template_file_runner.finish_processing_directory()
+        results = self.template_file_runner.finish_processing_directory()
+
+        # Log ML fallback statistics if enabled
+        if self.hybrid_strategy:
+            stats = self.hybrid_strategy.get_statistics()
+            logger.info("=" * 60)
+            logger.info("ML Fallback Statistics")
+            logger.info("=" * 60)
+            logger.info(f"Total fields processed: {stats['total_fields']}")
+            logger.info(f"High confidence fields: {stats['high_confidence_fields']}")
+            logger.info(f"Low confidence fields: {stats['low_confidence_fields']}")
+            logger.info(f"ML fallback used: {stats['ml_fallback_used']} times")
+            logger.info("=" * 60)
+
+        return results
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         """Execute OMR detection and interpretation.
@@ -49,6 +105,16 @@ class ReadOMRProcessor(Processor):
             Updated context with OMR response and interpretation metrics
         """
         logger.debug(f"Starting {self.get_name()} processor")
+
+        # Check if shift detection already ran and populated results
+        shift_detection_meta = context.metadata.get("shift_detection")
+
+        if shift_detection_meta:
+            # Shifts already applied and validated, results already in context
+            logger.debug(
+                "Using shift-validated detection results from ShiftDetectionProcessor"
+            )
+            return context
 
         template = context.template
         file_path = context.file_path
@@ -107,6 +173,18 @@ class ReadOMRProcessor(Processor):
         context.metadata["directory_level_interpretation_aggregates"] = (
             directory_level_interpretation_aggregates
         )
+
+        # Check for low-confidence fields and use ML fallback if needed
+        if self.hybrid_strategy and self.hybrid_strategy.should_use_ml_fallback(
+            context
+        ):
+            logger.info(
+                f"Using ML fallback for low-confidence fields in {Path(file_path).name}"
+            )
+            self.ml_detector.enable_for_low_confidence()
+            context = self.ml_detector.process(context)
+            self.ml_detector.disable()
+            self.hybrid_strategy.stats["ml_fallback_used"] += 1
 
         logger.debug(f"Completed {self.get_name()} processor")
 

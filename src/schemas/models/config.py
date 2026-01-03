@@ -257,6 +257,62 @@ class ProcessingConfig:
 
 
 @dataclass
+class ShiftDetectionConfig:
+    """Configuration for ML-based shift detection and application."""
+
+    enabled: bool = False
+    global_max_shift_pixels: int = 50  # Global limit for all blocks
+    per_block_max_shift_pixels: dict[str, int] = field(
+        default_factory=dict
+    )  # Per-block overrides
+
+    # Confidence adjustment on mismatch
+    confidence_reduction_min: float = 0.1  # Min reduction (1 bubble diff)
+    confidence_reduction_max: float = 0.5  # Max reduction (many diffs)
+
+    # Comparison thresholds
+    bubble_mismatch_threshold: int = 3  # Flag if >3 bubbles differ
+    field_mismatch_threshold: int = 1  # Flag if any field response differs
+
+
+@dataclass
+class MLConfig:
+    """Configuration for ML-based detection and training."""
+
+    # General ML settings
+    enabled: bool = False
+
+    # Bubble detection (Stage 2) settings
+    model_path: str | None = None
+    confidence_threshold: float = 0.7
+    use_for_low_confidence_only: bool = True
+
+    # Field block detection (Stage 1) settings
+    field_block_detection_enabled: bool = False
+    field_block_model_path: str | None = None
+    field_block_confidence_threshold: float = 0.75
+
+    # Detection fusion settings
+    fusion_enabled: bool = True
+    fusion_strategy: str = "confidence_weighted"  # Options: confidence_weighted, ml_fallback, traditional_primary
+    discrepancy_threshold: float = 0.3  # Flag if responses differ with high confidence
+
+    # Shift detection settings
+    shift_detection: ShiftDetectionConfig = field(default_factory=ShiftDetectionConfig)
+
+    # Training data collection settings
+    collect_training_data: bool = False
+    min_training_confidence: float = 0.85
+    training_data_dir: Path = Path("outputs/training_data")
+    model_output_dir: Path = Path("outputs/models")
+
+    # Hierarchical training settings
+    collect_field_block_data: bool = True  # Collect both stages
+    field_block_dataset_dir: Path = Path("outputs/training_data/field_blocks")
+    bubble_dataset_dir: Path = Path("outputs/training_data/bubbles")
+
+
+@dataclass
 class Config:
     """Main configuration object for OMRChecker.
 
@@ -267,6 +323,7 @@ class Config:
     thresholding: ThresholdingConfig = field(default_factory=ThresholdingConfig)
     outputs: OutputsConfig = field(default_factory=OutputsConfig)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    ml: MLConfig = field(default_factory=MLConfig)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Config":
@@ -298,6 +355,7 @@ class Config:
             thresholding=ThresholdingConfig(**data.get("thresholding", {})),
             outputs=OutputsConfig(**outputs_data),
             processing=ProcessingConfig(**data.get("processing", {})),
+            ml=MLConfig(**data.get("ml", {})),
         )
 
     def to_dict(self) -> dict:

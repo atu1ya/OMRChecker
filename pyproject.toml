@@ -30,6 +30,11 @@ dependencies = [
 # https://docs.astral.sh/uv/concepts/projects/dependencies/#optional-dependencies
 [project.optional-dependencies]
 easyocr = ["easyocr>=1.7.2"]
+ml = [
+    "ultralytics>=8.0.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+]
 
 [dependency-groups]
 dev = [

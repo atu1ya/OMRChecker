@@ -3,8 +3,10 @@ from pathlib import Path
 from src.schemas.models.config import (
     Config,
     FileGroupingConfig,
+    MLConfig,
     OutputsConfig,
     ProcessingConfig,
+    ShiftDetectionConfig,
     ThresholdingConfig,
 )
 from src.utils.constants import SUPPORTED_PROCESSOR_NAMES
@@ -52,5 +54,22 @@ CONFIG_DEFAULTS = Config(
     ),
     processing=ProcessingConfig(
         max_parallel_workers=1,  # Number of worker threads for parallel processing (1 = sequential)
+    ),
+    ml=MLConfig(
+        enabled=False,
+        model_path=None,
+        confidence_threshold=0.7,
+        use_for_low_confidence_only=True,
+        collect_training_data=False,
+        min_training_confidence=0.85,
+        shift_detection=ShiftDetectionConfig(
+            enabled=False,
+            global_max_shift_pixels=50,
+            per_block_max_shift_pixels={},
+            confidence_reduction_min=0.1,
+            confidence_reduction_max=0.5,
+            bubble_mismatch_threshold=3,
+            field_mismatch_threshold=1,
+        ),
     ),
 )

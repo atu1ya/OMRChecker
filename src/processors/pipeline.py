@@ -25,14 +25,16 @@ class ProcessingPipeline:
     - Consistent error handling
     """
 
-    def __init__(self, template) -> None:
+    def __init__(self, template, args: dict | None = None) -> None:
         """Initialize the pipeline with a template.
 
         Args:
             template: The template containing all configuration and runners
+            args: CLI arguments (for training data collection, ML fallback, etc.)
         """
         self.template = template
         self.tuning_config = template.tuning_config
+        self.args = args or {}
 
         # Lazy import processors to avoid circular dependencies
         # These imports are intentionally not at top-level
@@ -44,12 +46,73 @@ class ProcessingPipeline:
             PreprocessingProcessor,
         )
 
+        # Check for ML model paths from args
+        ml_model_path = self.args.get("ml_model_path")
+        field_block_model_path = self.args.get("field_block_model_path")
+        use_field_block_detection = self.args.get("use_field_block_detection", False)
+
         # Initialize all processors with unified interface
         self.processors: list[Processor] = [
             PreprocessingProcessor(template),
             AlignmentProcessor(template),
-            ReadOMRProcessor(template),
         ]
+
+        # Add ML field block detector if enabled (Stage 1)
+        if use_field_block_detection and field_block_model_path:
+            from src.processors.detection.ml_field_block_detector import (  # noqa: PLC0415
+                MLFieldBlockDetector,
+            )
+
+            self.processors.append(
+                MLFieldBlockDetector(
+                    field_block_model_path,
+                    confidence_threshold=self.tuning_config.ml.field_block_confidence_threshold,
+                )
+            )
+            logger.info("ML Field Block Detection (Stage 1) enabled")
+
+            # Add shift detection processor if configured or enabled via CLI
+            shift_config = self.tuning_config.ml.shift_detection
+            enable_shift_detection = self.args.get("enable_shift_detection", False)
+
+            if shift_config.enabled or enable_shift_detection:
+                from src.processors.detection.shift_detection_processor import (  # noqa: PLC0415
+                    ShiftDetectionProcessor,
+                )
+
+                self.processors.append(ShiftDetectionProcessor(template, shift_config))
+                logger.info("ML-based shift detection enabled")
+
+        # Add traditional + ML bubble detection (Stage 2)
+        self.processors.append(ReadOMRProcessor(template, ml_model_path=ml_model_path))
+
+        # Add training data collector if enabled
+        if self.args.get("collect_training_data", False):
+            self._add_training_data_collector()
+
+    def _add_training_data_collector(self) -> None:
+        """Add training data collector processor."""
+        try:
+            from src.processors.training import TrainingDataCollector  # noqa: PLC0415
+
+            confidence_threshold = self.args.get("confidence_threshold", 0.85)
+            training_data_dir = self.args.get(
+                "training_data_dir", "outputs/training_data"
+            )
+
+            collector = TrainingDataCollector(
+                self.template,
+                confidence_threshold=confidence_threshold,
+                export_dir=training_data_dir,
+            )
+
+            self.processors.append(collector)
+            logger.info(
+                f"Training data collection enabled (confidence threshold: {confidence_threshold})"
+            )
+
+        except ImportError as e:
+            logger.warning(f"Failed to add training data collector: {e}")
 
     def process_file(
         self,

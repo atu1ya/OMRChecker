@@ -61,6 +61,98 @@ def parse_args():
         run again until the template is set.",
     )
 
+    # ML Training arguments
+    argparser.add_argument(
+        "--collect-training-data",
+        required=False,
+        dest="collect_training_data",
+        action="store_true",
+        help="Collect high-confidence detections for ML training",
+    )
+
+    argparser.add_argument(
+        "--confidence-threshold",
+        type=float,
+        default=0.85,
+        required=False,
+        dest="confidence_threshold",
+        help="Minimum confidence for including in training data (0.0-1.0)",
+    )
+
+    argparser.add_argument(
+        "--mode",
+        choices=[
+            "process",
+            "auto-train",
+            "auto-train-hierarchical",
+            "test-model",
+            "export-yolo",
+        ],
+        default="process",
+        required=False,
+        dest="mode",
+        help="Operation mode: process (default), auto-train, auto-train-hierarchical, test-model, or export-yolo",
+    )
+
+    argparser.add_argument(
+        "--use-ml-fallback",
+        type=str,
+        required=False,
+        dest="ml_model_path",
+        help="Path to trained YOLO bubble model for low-confidence fallback",
+    )
+
+    argparser.add_argument(
+        "--use-field-block-detection",
+        action="store_true",
+        required=False,
+        dest="use_field_block_detection",
+        help="Enable ML field block detection (Stage 1) during processing",
+    )
+
+    argparser.add_argument(
+        "--field-block-model",
+        type=str,
+        required=False,
+        dest="field_block_model_path",
+        help="Path to trained YOLO field block model",
+    )
+
+    argparser.add_argument(
+        "--enable-shift-detection",
+        action="store_true",
+        required=False,
+        dest="enable_shift_detection",
+        help="Enable ML-based field block shift detection and application (requires field block model)",
+    )
+
+    argparser.add_argument(
+        "--fusion-strategy",
+        choices=["confidence_weighted", "ml_fallback", "traditional_primary"],
+        default="confidence_weighted",
+        required=False,
+        dest="fusion_strategy",
+        help="Detection fusion strategy when using ML models",
+    )
+
+    argparser.add_argument(
+        "--training-data-dir",
+        type=str,
+        default="outputs/training_data",
+        required=False,
+        dest="training_data_dir",
+        help="Directory containing training data",
+    )
+
+    argparser.add_argument(
+        "--epochs",
+        type=int,
+        default=100,
+        required=False,
+        dest="epochs",
+        help="Number of training epochs for auto-train mode",
+    )
+
     (
         args,
         unknown,
@@ -86,6 +178,67 @@ def entry_point_for_args(args) -> None:
         # Disable traceback limit
         sys.tracebacklimit = 0
         logger.set_log_levels({"debug": True})
+
+    # Handle different modes
+    mode = args.get("mode", "process")
+
+    if mode == "auto-train":
+        # Auto-training mode
+        from src.training.trainer import AutoTrainer  # noqa: PLC0415
+
+        trainer = AutoTrainer(
+            training_data_dir=args["training_data_dir"], epochs=args["epochs"]
+        )
+        trainer.train_from_collected_data()
+        return
+
+    if mode == "auto-train-hierarchical":
+        # Hierarchical auto-training mode (field blocks + bubbles)
+        from src.training.trainer import AutoTrainer  # noqa: PLC0415
+
+        trainer = AutoTrainer(epochs=args["epochs"])
+
+        # Train both stages
+        results = trainer.train_hierarchical_pipeline(
+            field_block_dataset=Path(args["output_dir"])
+            / "training_data"
+            / "field_blocks"
+            / "dataset",
+            bubble_dataset=Path(args["output_dir"])
+            / "training_data"
+            / "bubbles"
+            / "dataset",
+        )
+
+        logger.info("=" * 60)
+        logger.info("Hierarchical Training Results:")
+        logger.info(f"  Field Block Model: {results['field_block_model']}")
+        logger.info(f"  Bubble Model: {results['bubble_model']}")
+        logger.info("=" * 60)
+        return
+
+    if mode == "export-yolo":
+        # Export to YOLO format mode
+        from src.processors.training.yolo_exporter import (  # noqa: PLC0415
+            YOLOAnnotationExporter,
+        )
+
+        training_data_dir = Path(args["training_data_dir"])
+        dataset_dir = training_data_dir / "dataset"
+        source_images = training_data_dir / "dataset/images"
+        source_labels = training_data_dir / "dataset/labels"
+
+        exporter = YOLOAnnotationExporter(dataset_dir)
+        exporter.convert_dataset(source_images, source_labels)
+        logger.info("YOLO dataset export complete!")
+        return
+
+    if mode == "test-model":
+        # Model testing mode
+        logger.info("Model testing mode - coming soon!")
+        return
+
+    # Default: process mode
     for root in args["input_paths"]:
         try:
             entry_point(

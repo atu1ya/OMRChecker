@@ -257,6 +257,141 @@ CONFIG_SCHEMA = {
                         },
                     },
                 },
+                "ml": {
+                    "description": "The configuration related to ML-based detection and training",
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "enabled": {
+                            "description": "Enable ML-based detection features",
+                            "type": "boolean",
+                        },
+                        "model_path": {
+                            "description": "Path to trained YOLO model for bubble detection",
+                            "type": ["string", "null"],
+                        },
+                        "confidence_threshold": {
+                            "description": "Minimum confidence threshold for ML predictions (0.0-1.0)",
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                        },
+                        "use_for_low_confidence_only": {
+                            "description": "Use ML only for low-confidence traditional detections",
+                            "type": "boolean",
+                        },
+                        "collect_training_data": {
+                            "description": "Collect high-confidence detections for ML training",
+                            "type": "boolean",
+                        },
+                        "min_training_confidence": {
+                            "description": "Minimum confidence score to include sample in training data (0.0-1.0)",
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                        },
+                        "training_data_dir": {
+                            "description": "Directory to store bubble training data",
+                            "type": "string",
+                        },
+                        "model_output_dir": {
+                            "description": "Directory to store trained models",
+                            "type": "string",
+                        },
+                        "field_block_detection_enabled": {
+                            "description": "Enable Stage 1 field block detection",
+                            "type": "boolean",
+                        },
+                        "field_block_model_path": {
+                            "description": "Path to trained YOLO model for field block detection",
+                            "type": ["string", "null"],
+                        },
+                        "field_block_confidence_threshold": {
+                            "description": "Minimum confidence threshold for field block detection (0.0-1.0)",
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                        },
+                        "collect_field_block_data": {
+                            "description": "Collect field block data for ML training",
+                            "type": "boolean",
+                        },
+                        "field_block_dataset_dir": {
+                            "description": "Directory to store field block training data",
+                            "type": "string",
+                        },
+                        "bubble_dataset_dir": {
+                            "description": "Directory to store bubble training data (alias for training_data_dir)",
+                            "type": "string",
+                        },
+                        "shift_detection": {
+                            "description": "Configuration for ML-based field block shift detection",
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "enabled": {
+                                    "description": "Enable ML-based shift detection and application",
+                                    "type": "boolean",
+                                },
+                                "global_max_shift_pixels": {
+                                    "description": "Global maximum shift allowed in pixels for all field blocks",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                },
+                                "per_block_max_shift_pixels": {
+                                    "description": "Per-block maximum shift overrides (field_block_name: max_pixels)",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                    },
+                                },
+                                "confidence_reduction_min": {
+                                    "description": "Minimum confidence reduction when shift causes mismatch (0.0-1.0)",
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0,
+                                },
+                                "confidence_reduction_max": {
+                                    "description": "Maximum confidence reduction for severe mismatches (0.0-1.0)",
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0,
+                                },
+                                "bubble_mismatch_threshold": {
+                                    "description": "Flag mismatches if more than this many bubbles differ",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                },
+                                "field_mismatch_threshold": {
+                                    "description": "Flag mismatches if this many or more field responses differ",
+                                    "type": "integer",
+                                    "minimum": 0,
+                                },
+                            },
+                        },
+                        "fusion_enabled": {
+                            "description": "Enable detection fusion between traditional and ML methods",
+                            "type": "boolean",
+                        },
+                        "fusion_strategy": {
+                            "description": "Strategy for fusing traditional and ML detections",
+                            "type": "string",
+                            "enum": [
+                                "confidence_weighted",
+                                "ml_fallback",
+                                "traditional_primary",
+                                "ml_only",
+                            ],
+                        },
+                        "discrepancy_threshold": {
+                            "description": "Threshold for flagging discrepancies between traditional and ML (0.0-1.0)",
+                            "type": "number",
+                            "minimum": 0.0,
+                            "maximum": 1.0,
+                        },
+                    },
+                },
             },
         },
         {

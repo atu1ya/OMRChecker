@@ -233,6 +233,11 @@ class BubblesFieldInterpretation(FieldInterpretation):
             if local_marked != global_marked:
                 disparity_bubbles.append(bubble_mean)
 
+        # Calculate overall confidence score for ML training
+        confidence_score = self._calculate_overall_confidence_score(
+            detection_result, disparity_bubbles
+        )
+
         # Build confidence metrics
         self.insert_field_level_confidence_metrics(
             {
@@ -248,6 +253,7 @@ class BubblesFieldInterpretation(FieldInterpretation):
                 "field_label": self.field.field_label,
                 "scan_quality": detection_result.scan_quality.value,
                 "std_deviation": detection_result.std_deviation,
+                "overall_confidence_score": confidence_score,  # NEW: For ML training
             }
         )
 
@@ -256,3 +262,86 @@ class BubblesFieldInterpretation(FieldInterpretation):
                 f"Threshold disparity in field: {self.field.field_label}, "
                 f"bubbles in doubt: {len(disparity_bubbles)}"
             )
+
+    def _calculate_overall_confidence_score(
+        self, detection_result: BubbleFieldDetectionResult, disparity_bubbles
+    ) -> float:
+        """Calculate overall confidence score for this field's detection.
+
+        Score ranges from 0.0 to 1.0 based on:
+        - Threshold margin (how far marked bubbles are from threshold)
+        - Multi-mark probability
+        - Bubble intensity consistency within field
+        - Disparity with global threshold
+
+        Returns:
+            float: Confidence score between 0.0 (low confidence) and 1.0 (high confidence)
+        """
+        if not detection_result.bubble_means:
+            return 0.0
+
+        # Factor 1: Threshold confidence from strategy (0.0-1.0)
+        threshold_confidence = self.threshold_result.confidence
+
+        # Factor 2: Margin from threshold (how clearly marked/unmarked)
+        # Calculate average distance from threshold for marked bubbles
+        marked_bubbles = [
+            b
+            for b in detection_result.bubble_means
+            if b.mean_value < self.local_threshold_for_field
+        ]
+        if marked_bubbles:
+            avg_margin = sum(
+                self.local_threshold_for_field - b.mean_value for b in marked_bubbles
+            ) / len(marked_bubbles)
+            # Normalize margin confidence (larger margin = higher confidence)
+            # Assume 50 intensity units is very confident
+            margin_confidence = min(1.0, avg_margin / 50.0)
+        else:
+            # No bubbles marked - check unmarked confidence
+            avg_distance = sum(
+                b.mean_value - self.local_threshold_for_field
+                for b in detection_result.bubble_means
+            ) / len(detection_result.bubble_means)
+            margin_confidence = min(1.0, avg_distance / 50.0)
+
+        # Factor 3: Multi-mark penalty
+        marked_count = len(marked_bubbles)
+        if marked_count > 1:
+            # Multi-marking reduces confidence
+            multi_mark_penalty = 0.3  # Reduce by 30%
+        elif marked_count == 0:
+            # No marks - still confident if thresholds agree
+            multi_mark_penalty = 0.1  # Slight penalty
+        else:
+            # Single mark - ideal
+            multi_mark_penalty = 0.0
+
+        # Factor 4: Disparity penalty
+        disparity_ratio = (
+            len(disparity_bubbles) / len(detection_result.bubble_means)
+            if detection_result.bubble_means
+            else 0
+        )
+        disparity_penalty = disparity_ratio * 0.4  # Up to 40% penalty
+
+        # Factor 5: Scan quality
+        scan_quality_map = {
+            "EXCELLENT": 1.0,
+            "GOOD": 0.9,
+            "MODERATE": 0.7,
+            "POOR": 0.5,
+        }
+        scan_quality_factor = scan_quality_map.get(
+            detection_result.scan_quality.value, 0.5
+        )
+
+        # Combine factors (weighted average)
+        confidence_score = (
+            threshold_confidence * 0.35
+            + margin_confidence * 0.25
+            + scan_quality_factor * 0.20
+        ) * (1.0 - multi_mark_penalty - disparity_penalty)
+
+        # Clamp to [0, 1]
+        return max(0.0, min(1.0, confidence_score))

@@ -15,9 +15,10 @@ The main interface for interacting with all template json related operations
 
 
 class Template:
-    def __init__(self, template_path, tuning_config) -> None:
+    def __init__(self, template_path, tuning_config, args: dict | None = None) -> None:
         # TODO: load template json file at this level?
         self.tuning_config = tuning_config
+        self.args = args or {}
         # template_json =
         self.save_image_ops = SaveImageOps(tuning_config)
         self.template_layout = TemplateLayout(self, template_path, tuning_config)
@@ -43,7 +44,7 @@ class Template:
 
         # Initialize the unified processor pipeline
         # Note: TemplateFileRunner is now instantiated in ReadOMRProcessor
-        self.pipeline = ProcessingPipeline(self)
+        self.pipeline = ProcessingPipeline(self, args=self.args)
 
     # TODO: move some other functions here
     def apply_preprocessors(self, file_path, gray_image, colored_image):

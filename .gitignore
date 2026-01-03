@@ -30,3 +30,6 @@ pytestdebug.log
 # ruff
 .ruff_cache
 
+# ML outputs
+runs/**/*
+*.pt

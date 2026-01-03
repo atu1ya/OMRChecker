@@ -95,6 +95,7 @@ def process_directory_wise(
             local_template_path,
             # TODO: reduce coupling between config and template (or merge them)
             tuning_config,
+            args,  # Pass args for ML training and fallback
         )
     # Look for subdirectories for processing
     subdirs = [d for d in curr_dir.iterdir() if d.is_dir()]
