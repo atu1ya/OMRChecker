@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <h2>Single student marking</h2>
+  {% if not has_config %}
+  <div class="alert">Please upload your session configuration on the dashboard first.</div>
+  {% endif %}
+  <form class="form-grid" action="/mark/single/process" method="post" enctype="multipart/form-data">
+    <label>Student name
+      <input type="text" name="student_name" required />
+    </label>
+    <label>Writing score
+      <input type="number" name="writing_score" min="0" max="100" required />
+    </label>
+    <label>Reading sheet (PNG)
+      <input type="file" name="reading_sheet" accept="image/png" required />
+    </label>
+    <label>QR/AR sheet (PNG)
+      <input type="file" name="qrar_sheet" accept="image/png" required />
+    </label>
+    <button type="submit">Generate marked ZIP</button>
+  </form>
+</section>
+{% endblock %}

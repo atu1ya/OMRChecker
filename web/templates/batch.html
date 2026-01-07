@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <h2>Batch marking</h2>
+  {% if not has_config %}
+  <div class="alert">Please upload your session configuration on the dashboard first.</div>
+  {% endif %}
+  <p>Upload the manifest JSON and a ZIP containing the student PNGs referenced in the manifest.</p>
+  <pre class="code-block">{
+  "students": [
+    {
+      "name": "Ada Lovelace",
+      "writing_score": 25,
+      "reading_sheet": "ada_reading.png",
+      "qrar_sheet": "ada_qrar.png"
+    }
+  ]
+}</pre>
+  <form class="form-grid" action="/batch/process" method="post" enctype="multipart/form-data">
+    <label>Manifest JSON
+      <input type="file" name="manifest" accept=".json" required />
+    </label>
+    <label>PNG archive (ZIP)
+      <input type="file" name="archive" accept=".zip" required />
+    </label>
+    <button type="submit">Generate batch ZIP</button>
+  </form>
+</section>
+{% endblock %}
