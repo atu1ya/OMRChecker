@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Everest Tutoring ASET Marking</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <h1>Everest Tutoring</h1>
+      <p>ASET Marking System</p>
+    </div>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/mark/single">Single</a>
+      <a href="/batch">Batch</a>
+      <form class="logout-form" action="/logout" method="post">
+        <button type="submit">Logout</button>
+      </form>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

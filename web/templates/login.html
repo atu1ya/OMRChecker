@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Everest Tutoring Login</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-card">
+    <h1>Staff Login</h1>
+    <p>Enter the staff password to access the marking system.</p>
+    {% if error %}
+    <div class="alert">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/login">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required />
+      <button type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>

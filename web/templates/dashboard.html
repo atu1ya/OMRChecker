@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+  <h2>Session configuration</h2>
+  <p>Upload the Reading answer key, QR/AR answer key, and concept mapping JSON. These stay in memory for this session only.</p>
+  {% if error %}
+  <div class="alert">{{ error }}</div>
+  {% endif %}
+  <form class="form-grid" action="/config" method="post" enctype="multipart/form-data">
+    <label>Reading answer key
+      <input type="file" name="reading_key" accept=".csv,.txt,.json" required />
+    </label>
+    <label>QR/AR answer key
+      <input type="file" name="qrar_key" accept=".csv,.txt,.json" required />
+    </label>
+    <label>Concept mapping JSON
+      <input type="file" name="concept_mapping" accept=".json" required />
+    </label>
+    <button type="submit">Save configuration</button>
+  </form>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h3>Configuration status</h3>
+    <ul>
+      <li>Reading key: <strong>{{ "Loaded" if status.reading_key else "Missing" }}</strong></li>
+      <li>QR/AR key: <strong>{{ "Loaded" if status.qrar_key else "Missing" }}</strong></li>
+      <li>Concept mapping: <strong>{{ "Loaded" if status.concept_mapping else "Missing" }}</strong></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Counts</h3>
+    <ul>
+      <li>Reading questions: {{ counts.reading_questions }}</li>
+      <li>QR/AR questions: {{ counts.qrar_questions }}</li>
+      <li>Mapped subjects: {{ counts.mapping_subjects }}</li>
+    </ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Quick links</h2>
+  <div class="actions">
+    <a class="button" href="/mark/single">Single student marking</a>
+    <a class="button" href="/batch">Batch marking</a>
+  </div>
+</section>
+{% endblock %}
